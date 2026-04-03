@@ -615,13 +615,13 @@ export default function DashboardControlCenter({
           onNavigate={onNavigate}
         />
 
-        <DataFlowRecommendations themeMode={themeMode} snapshots={snapshots} onNavigate={onNavigate} />
-
         <MissionCommandDeckCard
           themeMode={themeMode}
           goals={snapshots.goals}
           goalsHydrated={dashboardHydrated}
         />
+
+        <DataFlowRecommendations themeMode={themeMode} snapshots={snapshots} onNavigate={onNavigate} />
 
         <AffiliateSnapshotCard themeMode={themeMode} snapshots={snapshots} onNavigate={onNavigate} />
 

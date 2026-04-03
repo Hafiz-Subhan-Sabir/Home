@@ -37,7 +37,6 @@ type ReminderRow = {
   title: string;
   date: string;
   time: string;
-  points: number;
   status: "active" | "completed";
 };
 
@@ -137,7 +136,6 @@ function mapReminder(r: ApiReminder): ReminderRow {
     title: r.title,
     date: r.date,
     time: t,
-    points: r.points,
     status: r.status as ReminderRow["status"]
   };
 }
@@ -394,7 +392,6 @@ export function MissionCommandDeckCard({
   const [rTitle, setRTitle] = useState("");
   const [rDate, setRDate] = useState("");
   const [rTime, setRTime] = useState("");
-  const [rPoints, setRPoints] = useState(5);
 
   const [nTitle, setNTitle] = useState("");
   const [nBody, setNBody] = useState("");
@@ -616,7 +613,7 @@ export function MissionCommandDeckCard({
           title,
           date: rDate,
           time: timeForApi(rTime),
-          points: Math.max(0, Math.min(9999, Math.floor(rPoints))),
+          points: 0,
           status: "active"
         })
       });
@@ -628,7 +625,6 @@ export function MissionCommandDeckCard({
         title,
         date: rDate,
         time: rTime,
-        points: Math.max(0, Math.min(9999, Math.floor(rPoints))),
         status: "active"
       };
       persistReminders([row, ...reminders]);
@@ -636,7 +632,6 @@ export function MissionCommandDeckCard({
     setRTitle("");
     setRDate("");
     setRTime("");
-    setRPoints(5);
   };
 
   const patchReminder = async (id: string, status: ReminderRow["status"]) => {
@@ -900,7 +895,7 @@ export function MissionCommandDeckCard({
             Reminders / schedules
           </div>
           <p className="mt-2 text-[13px] leading-relaxed text-white/60 md:text-[14px] md:leading-relaxed">
-            Schedule with date, time, and points. Separate active and completed.
+            Schedule with date and time. Separate active and completed.
           </p>
 
           {useApiDeck && !canDeckWrite ? (
@@ -918,8 +913,8 @@ export function MissionCommandDeckCard({
                 disabled={useApiDeck && !canDeckWrite}
               />
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="col-span-1">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div>
                 <label className={labelCls}>Date</label>
                 <input
                   className={inputCls}
@@ -929,25 +924,13 @@ export function MissionCommandDeckCard({
                   disabled={useApiDeck && !canDeckWrite}
                 />
               </div>
-              <div className="col-span-1">
+              <div>
                 <label className={labelCls}>Time</label>
                 <input
                   className={inputCls}
                   type="time"
                   value={rTime}
                   onChange={(e) => setRTime(e.target.value)}
-                  disabled={useApiDeck && !canDeckWrite}
-                />
-              </div>
-              <div className="col-span-1">
-                <label className={labelCls}>Points</label>
-                <input
-                  className={inputCls}
-                  type="number"
-                  min={0}
-                  max={9999}
-                  value={rPoints}
-                  onChange={(e) => setRPoints(Number(e.target.value))}
                   disabled={useApiDeck && !canDeckWrite}
                 />
               </div>
@@ -992,14 +975,7 @@ export function MissionCommandDeckCard({
                         key={r.id}
                         title={r.title}
                         badge={<ReminderStatusBadge status="active" />}
-                        subtitle={
-                          <>
-                            <DueDateLine label="When" value={`${r.date} · ${r.time}`} urgent={urgent} />
-                            <div className="mt-0.5">
-                              <PriorityPoints points={r.points} tone="gold" />
-                            </div>
-                          </>
-                        }
+                        subtitle={<DueDateLine label="When" value={`${r.date} · ${r.time}`} urgent={urgent} />}
                         footer={
                           (!useApiDeck || canDeckWrite) && (
                             <button

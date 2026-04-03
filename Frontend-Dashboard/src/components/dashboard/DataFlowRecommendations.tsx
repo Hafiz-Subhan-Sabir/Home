@@ -196,48 +196,51 @@ export function DataFlowRecommendations({
         <div className="font-mono text-[11px] font-extrabold uppercase tracking-[0.24em] text-white/55 md:text-[12px]">
           DATA FLOW RECOMMENDATIONS
         </div>
-        <motion.div
-          className="mt-4 flex w-full flex-col lg:mt-5 lg:flex-row lg:items-stretch"
-          initial="hidden"
-          animate="show"
-          variants={{
-            hidden: {},
-            show: { transition: { staggerChildren: 0.08, delayChildren: 0.06 } }
-          }}
-        >
-          {steps.map((step, i) => (
-            <Fragment key={step.id}>
-              {i > 0 ? (
-                <>
-                  <div className="flex justify-center lg:hidden">
-                    <FlowArrowVertical tone={arrowBetween[i - 1] ?? "cyan"} />
-                  </div>
-                  <motion.div
-                    className="hidden min-w-[2.5rem] max-w-[5rem] flex-1 items-center justify-center px-1 lg:flex"
-                    variants={{ hidden: { opacity: 0 }, show: { opacity: 1 } }}
-                  >
-                    <FlowArrowHorizontal tone={arrowBetween[i - 1] ?? "cyan"} />
-                  </motion.div>
-                </>
-              ) : null}
-              <motion.div
-                className="min-w-0 flex-1"
-                variants={{
-                  hidden: { opacity: 0, x: -12 },
-                  show: { opacity: 1, x: 0, transition: { duration: 0.32, ease: "easeOut" } }
-                }}
-              >
-                <FlowStepCard
-                  lane={step.lane}
-                  tone={step.tone}
-                  title={step.title}
-                  reason={step.reason}
-                  onOpen={() => onNavigate(step.nav)}
-                />
-              </motion.div>
-            </Fragment>
-          ))}
-        </motion.div>
+        <div className="mt-4 flex w-full flex-col lg:mt-5 lg:flex-row lg:items-stretch">
+          {steps.map((step, i) => {
+            const cardDelay = i * 0.16;
+            const arrowDelay = Math.max(0, (i - 1) * 0.16 + 0.09);
+            const ease = [0.22, 1, 0.36, 1] as const;
+            return (
+              <Fragment key={step.id}>
+                {i > 0 ? (
+                  <>
+                    <motion.div
+                      className="flex justify-center lg:hidden"
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: arrowDelay, duration: 0.32, ease }}
+                    >
+                      <FlowArrowVertical tone={arrowBetween[i - 1] ?? "cyan"} />
+                    </motion.div>
+                    <motion.div
+                      className="hidden min-w-[2.5rem] max-w-[5rem] flex-1 items-center justify-center px-1 lg:flex"
+                      initial={{ opacity: 0, x: -14 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: arrowDelay, duration: 0.34, ease }}
+                    >
+                      <FlowArrowHorizontal tone={arrowBetween[i - 1] ?? "cyan"} />
+                    </motion.div>
+                  </>
+                ) : null}
+                <motion.div
+                  className="min-w-0 flex-1"
+                  initial={{ opacity: 0, x: -32 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: cardDelay, duration: 0.45, ease }}
+                >
+                  <FlowStepCard
+                    lane={step.lane}
+                    tone={step.tone}
+                    title={step.title}
+                    reason={step.reason}
+                    onOpen={() => onNavigate(step.nav)}
+                  />
+                </motion.div>
+              </Fragment>
+            );
+          })}
+        </div>
       </div>
     </motion.div>
   );

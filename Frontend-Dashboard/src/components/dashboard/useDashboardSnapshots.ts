@@ -223,25 +223,45 @@ export function useDashboardSnapshots({
         ]
       },
       recommendations: (() => {
+        /** Same titles / subtitles as the Programs → Courses grid (`meta` / `statusText`). */
+        const programReason = (c: DashboardCourseLike) => {
+          const line = [c.meta, c.statusText].filter(Boolean).join(" · ");
+          return line.length > 0 ? line : "Open Programs to continue this track.";
+        };
+        const programReasonFromSnapshot = (p: ProgramSnapshot) => {
+          const line = [p.meta].filter(Boolean).join(" · ");
+          if (line.length > 0) {
+            return p.progressPct > 0 ? `${line} · ${p.progressPct}% complete` : line;
+          }
+          return p.progressPct > 0 ? `${p.progressPct}% complete — keep going in Programs.` : "Continue in Programs.";
+        };
+
+        const lastId = lastCourseId ?? undefined;
+        const activeId = activeProgramId ?? undefined;
+        const fromLast = lastId ? courses.find((c) => c.id === lastId) : undefined;
+        const fromActive = activeId ? courses.find((c) => c.id === activeId) : undefined;
         const primaryProgram = programs[0];
+        const catalogFirst = courses[0];
+
         const nextProgram =
-          primaryProgram != null
-            ? {
-                title: primaryProgram.title,
-                reason: `${primaryProgram.progressPct > 0 ? `At ${primaryProgram.progressPct}% — ` : ""}${primaryProgram.meta ? `${primaryProgram.meta}. ` : ""}Pairs with Syndicate execution cadence.`,
-                nav: "programs" as const
-              }
-            : courses.length > 0
-              ? {
-                  title: courses[0].title,
-                  reason: courses[0].meta ?? courses[0].statusText ?? "Open Programs to start this track.",
-                  nav: "programs" as const
-                }
-              : {
-                  title: "Java Programming",
-                  reason: "Pairs with Syndicate execution cadence.",
-                  nav: "programs" as const
-                };
+          fromLast != null
+            ? { title: fromLast.title, reason: programReason(fromLast), nav: "programs" as const }
+            : fromActive != null
+              ? { title: fromActive.title, reason: programReason(fromActive), nav: "programs" as const }
+              : primaryProgram != null
+                ? {
+                    title: primaryProgram.title,
+                    reason: programReasonFromSnapshot(primaryProgram),
+                    nav: "programs" as const
+                  }
+                : catalogFirst != null
+                  ? { title: catalogFirst.title, reason: programReason(catalogFirst), nav: "programs" as const }
+                  : {
+                      title: "Programs",
+                      reason: "Browse courses and start a track from the Programs tab.",
+                      nav: "programs" as const
+                    };
+
         return {
           nextProgram,
           nextChallenge: { title: "Dominance Protocol", reason: "High ROI for confidence and influence.", nav: "monk" },

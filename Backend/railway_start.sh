@@ -10,7 +10,5 @@ if [ -z "${DATABASE_URL:-}" ] && [ -z "${DATABASE_PRIVATE_URL:-}" ] && [ -z "${D
 fi
 
 mkdir -p staticfiles
-echo "railway_start: migrate"
-python manage.py migrate --noinput --verbosity 1
-echo "railway_start: gunicorn on 0.0.0.0:${PORT}"
-exec python -m gunicorn syndicate_backend.wsgi:application --bind "0.0.0.0:${PORT}" --workers 2 --threads 4 --timeout 120
+echo "railway_start: gunicorn --preload (Postgres migrations run in wsgi.py)"
+exec python -m gunicorn syndicate_backend.wsgi:application --bind "0.0.0.0:${PORT}" --workers 2 --threads 4 --timeout 120 --preload

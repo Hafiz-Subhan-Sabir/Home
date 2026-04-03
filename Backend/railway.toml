@@ -1,5 +1,6 @@
 # Backend service: set Railway "Root Directory" to Backend.
 # Add PostgreSQL to this service — Railway sets DATABASE_URL; run migrate via releaseCommand.
+# Nixpacks may use Procfile `web` instead of startCommand below — keep both in sync.
 
 [build]
 builder = "NIXPACKS"

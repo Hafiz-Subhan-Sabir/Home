@@ -20,6 +20,10 @@ from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import include, path
 
+from syndicate_backend.admin_forms import EmailAsUsernameAdminLoginForm
+
+admin.site.login_form = EmailAsUsernameAdminLoginForm
+
 
 def api_root(_request):
     """Helps verify the public Railway URL points at this Django app (not the Next.js service)."""

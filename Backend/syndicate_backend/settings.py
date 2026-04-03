@@ -211,8 +211,9 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
-
-STATIC_URL = "static/"
+#
+# Leading slash so /admin/ pages load CSS/JS from /static/... (not /admin/static/...).
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 # WhiteNoise warns if this path is missing; release may not have run collectstatic yet.
 STATIC_ROOT.mkdir(parents=True, exist_ok=True)
@@ -241,6 +242,12 @@ if USE_CLOUDINARY:
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# --- Admin superuser (production) ---
+# Do not create users inside this file (it is imported on every request). Instead set:
+#   DJANGO_SUPERUSER_EMAIL
+#   DJANGO_SUPERUSER_PASSWORD
+# Railway/docker: `railway_start.sh` runs `manage.py ensure_superuser` after migrate.
 
 _cors_env = (os.environ.get("CORS_ALLOWED_ORIGINS") or "").strip()
 if _cors_env:

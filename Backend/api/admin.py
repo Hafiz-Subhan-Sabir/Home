@@ -10,7 +10,7 @@ from .views import run_ingest
 
 class UploadedDocumentAddForm(forms.ModelForm):
     file = forms.FileField(
-        help_text="PDF, TXT, MD/Markdown, or DOCX. After save, mindsets are extracted with OpenAI (set OPENAI_API_KEY on the server).",
+        help_text="Use .docx (not .doc or .docs), or .pdf / .txt / .md. After save, OpenAI ingest runs (OPENAI_API_KEY on Railway).",
     )
 
     class Meta:
@@ -21,9 +21,17 @@ class UploadedDocumentAddForm(forms.ModelForm):
         f = self.cleaned_data["file"]
         name = getattr(f, "name", "upload") or "upload"
         suffix = Path(name).suffix.lower()
+        if suffix == ".doc":
+            raise forms.ValidationError(
+                "Legacy Word .doc is not supported. In Word or Google Docs use Save as / Download → .docx."
+            )
+        if suffix in (".docs", ".docm"):
+            raise forms.ValidationError(
+                f"Extension {suffix!r} is not supported. For Word use .docx. Allowed: {', '.join(sorted(SUPPORTED_SUFFIXES))}"
+            )
         if suffix not in SUPPORTED_SUFFIXES:
             raise forms.ValidationError(
-                f"Unsupported type. Use one of: {', '.join(sorted(SUPPORTED_SUFFIXES))}"
+                f"Unsupported type {suffix!r}. Use one of: {', '.join(sorted(SUPPORTED_SUFFIXES))}"
             )
         return f
 
@@ -62,10 +70,26 @@ class UploadedDocumentAdmin(admin.ModelAdmin):
         return [f.name for f in self.model._meta.fields]
 
     def save_model(self, request, obj, form, change):
-        super().save_model(request, obj, form, change)
+        try:
+            super().save_model(request, obj, form, change)
+        except Exception as exc:
+            self.message_user(
+                request,
+                f"Could not save document: {exc}",
+                level=messages.ERROR,
+            )
+            raise
         if change:
             return
-        ok, data, ingest_err = run_ingest(obj)
+        try:
+            ok, data, ingest_err = run_ingest(obj)
+        except Exception as exc:
+            self.message_user(
+                request,
+                f"Document was saved, but ingest crashed: {exc}. Check OPENAI_API_KEY and Railway logs.",
+                level=messages.ERROR,
+            )
+            return
         if not ok:
             self.message_user(
                 request,

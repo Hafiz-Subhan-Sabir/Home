@@ -35,15 +35,30 @@ def store_uploaded_file(f: UploadedFile) -> tuple[UploadedDocument | None, str |
     rel = f"uploads/{content_hash}{suffix}"
     path = Path(settings.SYNDICATE_DATA_DIR) / rel
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("wb") as out:
-        for c in chunks:
-            out.write(c)
+    try:
+        with path.open("wb") as out:
+            for c in chunks:
+                out.write(c)
+    except OSError as e:
+        return None, f"Could not save file under data/uploads (disk full or read-only?): {e}"
 
-    text = extract_text(path)
-    doc = UploadedDocument.objects.create(
-        original_name=name,
-        stored_path=str(path.relative_to(settings.SYNDICATE_DATA_DIR)).replace("\\", "/"),
-        content_hash=content_hash,
-        text_extracted=text,
-    )
+    try:
+        text = extract_text(path)
+    except ValueError as e:
+        path.unlink(missing_ok=True)
+        return None, str(e)
+    except Exception as e:
+        path.unlink(missing_ok=True)
+        return None, f"Could not read this document (corrupt or unsupported content): {e}"
+
+    try:
+        doc = UploadedDocument.objects.create(
+            original_name=name,
+            stored_path=str(path.relative_to(settings.SYNDICATE_DATA_DIR)).replace("\\", "/"),
+            content_hash=content_hash,
+            text_extracted=text,
+        )
+    except Exception as e:
+        path.unlink(missing_ok=True)
+        return None, f"Could not save document record: {e}"
     return doc, None

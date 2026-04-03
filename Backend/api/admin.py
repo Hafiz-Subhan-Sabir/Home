@@ -8,11 +8,15 @@ from django.http import Http404, HttpResponseRedirect
 from django.urls import reverse
 
 from .models import MindsetKnowledge, UploadedDocument
+from .services.ingest_async import schedule_ingest_after_commit
+from .services.upload_store import (
+    SUPPORTED_SUFFIXES,
+    persist_upload_to_storage,
+    prepare_upload_bytes,
+)
+from .views import run_ingest
 
 logger = logging.getLogger(__name__)
-from .services.ingest_async import schedule_ingest_after_commit
-from .services.upload_store import SUPPORTED_SUFFIXES, store_upload_bytes
-from .views import run_ingest
 
 
 class UploadedDocumentAddForm(forms.ModelForm):
@@ -48,7 +52,6 @@ class UploadedDocumentAddForm(forms.ModelForm):
             raise forms.ValidationError(
                 f"Unsupported type {suffix!r}. Use one of: {', '.join(sorted(SUPPORTED_SUFFIXES))}"
             )
-        # Read once here; do not re-read in save() (some upload handlers only allow one read).
         data = b"".join(f.chunks())
         if not data:
             raise forms.ValidationError("Empty file.")
@@ -58,32 +61,33 @@ class UploadedDocumentAddForm(forms.ModelForm):
 
     def clean(self):
         super().clean()
-        # Persist during validation so S3/DB/extract errors attach to the form instead of 500 after is_valid().
-        if getattr(self, "_admin_upload_doc", None) is not None:
+        # Do not INSERT here: admin wraps the whole form in transaction.atomic(); early INSERT + S3
+        # then a second save() is fragile on Postgres/Railway. Only validate + extract + build unsaved instance.
+        if getattr(self, "_upload_payload", None) is not None:
             return self.cleaned_data
         data = getattr(self, "_upload_bytes", None)
         name = getattr(self, "_upload_original_name", None)
         if data is None or name is None:
             return self.cleaned_data
-        doc, err = store_upload_bytes(data, name)
+        prepared, err = prepare_upload_bytes(data, name)
         if err:
             raise forms.ValidationError(err)
-        self._admin_upload_doc = doc
-        # ModelForm._post_clean runs after this; it must see the real row, not an empty shell.
-        self.instance = doc
+        self._upload_payload = prepared
+        h = prepared["content_hash"]
+        sfx = prepared["suffix"]
+        self.instance = UploadedDocument(
+            original_name=prepared["original_name"],
+            stored_path=f"_pending/{h}{sfx}",
+            content_hash=h,
+            text_extracted=prepared["text"],
+        )
         return self.cleaned_data
 
-    def _post_clean(self):
-        # Row is already persisted in clean(); skip construct_instance/full_clean on a blank instance.
-        return
-
     def save(self, commit=True):
-        doc = getattr(self, "_admin_upload_doc", None)
-        if doc is None:
+        if getattr(self, "_upload_payload", None) is None:
             raise forms.ValidationError("Upload did not complete. Choose a file and try again.")
-        self.instance = doc
         self.save_m2m = lambda: None
-        return doc
+        return self.instance
 
 
 @admin.register(UploadedDocument)
@@ -126,6 +130,14 @@ class UploadedDocumentAdmin(admin.ModelAdmin):
         return [f.name for f in self.model._meta.fields]
 
     def save_model(self, request, obj, form, change):
+        if not change and isinstance(form, UploadedDocumentAddForm):
+            prepared = getattr(form, "_upload_payload", None)
+            if prepared:
+                path, err = persist_upload_to_storage(prepared)
+                if err:
+                    self.message_user(request, err, level=messages.ERROR)
+                    raise RuntimeError(err)
+                obj.stored_path = path
         try:
             super().save_model(request, obj, form, change)
         except Exception as exc:
@@ -137,8 +149,16 @@ class UploadedDocumentAdmin(admin.ModelAdmin):
             raise
         if change:
             return
-        # OpenAI ingest can exceed HTTP/proxy timeouts; run after commit in a background thread.
-        schedule_ingest_after_commit(obj.pk)
+        try:
+            schedule_ingest_after_commit(obj.pk)
+        except Exception:
+            logger.exception("schedule_ingest_after_commit failed document_id=%s", obj.pk)
+            self.message_user(
+                request,
+                "Document saved, but background ingest could not be scheduled (check server logs).",
+                level=messages.WARNING,
+            )
+            return
         self.message_user(
             request,
             "Document saved. Mindset extraction runs in the background; wait ~30–60s then refresh "

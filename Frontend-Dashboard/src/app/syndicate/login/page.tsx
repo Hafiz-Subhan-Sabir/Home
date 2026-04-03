@@ -55,7 +55,7 @@ export default function SyndicateLoginPage() {
   }
 
   return (
-    <main className="w-full min-w-0 rounded-2xl border border-[rgba(255,215,0,0.34)] bg-black/50 p-5 sm:p-8">
+    <main className="w-full min-w-0 overflow-x-hidden break-words rounded-2xl border border-[rgba(255,215,0,0.34)] bg-black/50 p-5 sm:p-8">
       <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[color:var(--gold)]/80">Syndicate Access</p>
       <h1 className="mt-2 text-[clamp(1.35rem,5vw,1.75rem)] font-black tracking-tight text-white">Login</h1>
       <p className="mt-2 text-[15px] leading-snug text-white/65 sm:text-sm">Sign in to unlock Syndicate mode missions and tracking.</p>

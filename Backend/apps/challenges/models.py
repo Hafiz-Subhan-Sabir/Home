@@ -53,7 +53,7 @@ class UserAgentDailyQuote(models.Model):
 
 
 class GeneratedChallenge(models.Model):
-    """History of generated challenges. Rows with ``creator_device`` set are user-created (max 2/day per device)."""
+    """Daily AI/system missions use ``creator_device=""`` and are deleted after their calendar day. Rows with non-empty ``creator_device`` are user-created custom missions and are kept."""
 
     mood = models.CharField(max_length=128, db_index=True, blank=True)
     creator_device = models.CharField(max_length=128, db_index=True, blank=True, default="")

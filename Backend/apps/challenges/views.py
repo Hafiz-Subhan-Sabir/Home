@@ -27,12 +27,22 @@ from .models import (
 )
 
 ADMIN_TASK_MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024
+from .device_batch_async import (
+    device_generation_lock,
+    is_device_generation_inflight,
+    start_device_ai_batch_phase2,
+)
 from .services import (
+    DAILY_SYSTEM_BATCH_SIZE,
     create_user_custom_challenge,
+    device_batch_is_phase1_energetic_only,
     ensure_category_pair,
     ensure_daily_challenges,
     ensure_daily_challenges_for_device,
     generate_challenges,
+    generate_device_ai_batch_phase_energetic_parallel,
+    get_today_device_system_rows,
+    prune_stale_syndicate_daily_rows,
     run_generate,
     score_mission_response,
     serialize_challenge_row,
@@ -43,10 +53,8 @@ def _user_device_key(request) -> str:
 
 
 def _prune_old_challenge_rows() -> None:
-    """Remove system/custom challenge rows whose calendar date is more than 2 days before today."""
-    today = timezone.localdate()
-    cutoff = today - timedelta(days=2)
-    GeneratedChallenge.objects.filter(challenge_date__lt=cutoff).delete()
+    """Remove prior-calendar-day AI challenges and quotes; keep user-created custom missions."""
+    prune_stale_syndicate_daily_rows()
 
 
 def _normalize_streak_on_read(obj: SyndicateUserProgress, today) -> None:
@@ -326,17 +334,83 @@ def challenges_today(request):
     if not MindsetKnowledge.objects.exists():
         return Response({"results": [], "detail": "No mindsets loaded yet."})
     device_id = _user_device_key(request)
-    if device_id:
-        ok, rows, err = ensure_daily_challenges_for_device(device_id, force_regenerate=False)
-    else:
+    today = timezone.localdate()
+
+    if not device_id:
         ok, rows, err = ensure_daily_challenges(force_regenerate=False)
-    if not ok:
-        return Response({"results": [], "detail": err or "Failed"}, status=status.HTTP_502_BAD_GATEWAY)
-    if device_id:
-        today = timezone.localdate()
+        if not ok:
+            return Response({"results": [], "detail": err or "Failed"}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response({"results": rows, "batch_complete": True, "generating": False})
+
+    qs_sys = GeneratedChallenge.objects.filter(
+        challenge_date=today,
+        creator_device="",
+        device_batch_device_id=device_id,
+    )
+    n = qs_sys.count()
+
+    if n >= DAILY_SYSTEM_BATCH_SIZE:
+        rows = get_today_device_system_rows(device_id)
         extras = GeneratedChallenge.objects.filter(challenge_date=today, creator_device=device_id).order_by("slot", "id")
         rows = list(rows) + [serialize_challenge_row(c) for c in extras]
-    return Response({"results": rows})
+        return Response({"results": rows, "batch_complete": True, "generating": False})
+
+    if 0 < n < DAILY_SYSTEM_BATCH_SIZE:
+        if is_device_generation_inflight(device_id, today):
+            rows = get_today_device_system_rows(device_id)
+        elif device_batch_is_phase1_energetic_only(device_id=device_id, today=today):
+            start_device_ai_batch_phase2(device_id, request.user.id)
+            rows = get_today_device_system_rows(device_id)
+        else:
+            with device_generation_lock(device_id, today):
+                GeneratedChallenge.objects.filter(
+                    challenge_date=today,
+                    creator_device="",
+                    device_batch_device_id=device_id,
+                ).delete()
+                ok_p1, err_p1 = generate_device_ai_batch_phase_energetic_parallel(device_id, request.user.id)
+            if not ok_p1:
+                return Response(
+                    {"results": [], "detail": err_p1 or "Failed to generate missions."},
+                    status=status.HTTP_502_BAD_GATEWAY,
+                )
+            start_device_ai_batch_phase2(device_id, request.user.id)
+            rows = get_today_device_system_rows(device_id)
+        extras = GeneratedChallenge.objects.filter(challenge_date=today, creator_device=device_id).order_by("slot", "id")
+        rows = list(rows) + [serialize_challenge_row(c) for c in extras]
+        return Response({"results": rows, "batch_complete": False, "generating": True})
+
+    with device_generation_lock(device_id, today):
+        qs_inner = GeneratedChallenge.objects.filter(
+            challenge_date=today,
+            creator_device="",
+            device_batch_device_id=device_id,
+        )
+        n_inner = qs_inner.count()
+        if n_inner >= DAILY_SYSTEM_BATCH_SIZE:
+            rows = get_today_device_system_rows(device_id)
+            extras = GeneratedChallenge.objects.filter(
+                challenge_date=today, creator_device=device_id
+            ).order_by("slot", "id")
+            rows = list(rows) + [serialize_challenge_row(c) for c in extras]
+            return Response({"results": rows, "batch_complete": True, "generating": False})
+        if n_inner > 0:
+            if not device_batch_is_phase1_energetic_only(device_id=device_id, today=today):
+                qs_inner.delete()
+                n_inner = 0
+        if n_inner == 0:
+            ok_p1, err_p1 = generate_device_ai_batch_phase_energetic_parallel(device_id, request.user.id)
+            if not ok_p1:
+                return Response(
+                    {"results": [], "detail": err_p1 or "Failed to generate missions."},
+                    status=status.HTTP_502_BAD_GATEWAY,
+                )
+
+    start_device_ai_batch_phase2(device_id, request.user.id)
+    rows = get_today_device_system_rows(device_id)
+    extras = GeneratedChallenge.objects.filter(challenge_date=today, creator_device=device_id).order_by("slot", "id")
+    rows = list(rows) + [serialize_challenge_row(c) for c in extras]
+    return Response({"results": rows, "batch_complete": False, "generating": True})
 
 
 @api_view(["POST"])
@@ -357,6 +431,7 @@ def challenges_user_custom(request):
         if detail in (
             "device_id required",
             "Title must be 3–220 characters.",
+            "Title too short",
             "difficulty must be easy, medium, or hard.",
             "Maximum 2 custom missions per calendar day.",
             "Ingest a document first.",
@@ -478,7 +553,7 @@ def challenges_generate_daily(request):
     force = bool(request.data.get("force", False))
     device_id = _user_device_key(request)
     if device_id:
-        ok, rows, err = ensure_daily_challenges_for_device(device_id, force_regenerate=force)
+        ok, rows, err = ensure_daily_challenges_for_device(device_id, force_regenerate=force, user=request.user)
     else:
         ok, rows, err = ensure_daily_challenges(force_regenerate=force)
     if not ok:

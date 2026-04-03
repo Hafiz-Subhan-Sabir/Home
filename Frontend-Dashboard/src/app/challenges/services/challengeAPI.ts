@@ -2,8 +2,8 @@
  * Mood + category challenge generation — POST /api/challenges/generate/
  * Reuses the same API base as challengesApi.ts (NEXT_PUBLIC_SYNDICATE_API_URL).
  */
-import { challengesApiUrl } from "./challengesApi";
-import { getSyndicateAuthHeaders } from "@/lib/syndicateAuth";
+import { challengesApiUrl, ensureSyndicateSessionOrRedirect } from "./challengesApi";
+import { getSyndicateAuthHeaders, getSyndicateAuthToken } from "@/lib/syndicateAuth";
 import { syndicateUserStorageKey } from "@/lib/syndicateStorageKeys";
 
 export type MoodId = "energetic" | "happy" | "tired";
@@ -34,11 +34,13 @@ export async function generateChallenges(
   const deviceId = opts?.deviceId ?? readSyndicateDeviceId();
   const body: Record<string, string> = { mood: mood.trim(), category: category.trim() };
   if (deviceId) body.device_id = deviceId;
+  const tokenBefore = getSyndicateAuthToken();
   const r = await fetch(challengesApiUrl("generate/"), {
     method: "POST",
     headers: getSyndicateAuthHeaders(true),
     body: JSON.stringify(body)
   });
+  ensureSyndicateSessionOrRedirect(r, !!tokenBefore);
   const j = (await r.json()) as GenerateChallengesResponse & { detail?: string };
   if (!r.ok) {
     throw new Error(typeof j.detail === "string" ? j.detail : "Generate failed");

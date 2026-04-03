@@ -20,8 +20,9 @@ import {
 
 import {
   challengesApiUrl,
+  ensureSyndicateSessionOrRedirect,
   fetchAdminTasksActive,
-  fetchChallengesToday,
+  fetchChallengesTodayUntilComplete,
   fetchLeaderboard,
   fetchSyndicateProgress,
   getChallengeBenefits,
@@ -33,6 +34,7 @@ import {
   postSyndicateStreakRecord,
   postSyndicateStreakRestore,
   postUserCustomChallenge,
+  SyndicateSessionLostError,
   syncLeaderboard,
   type AdminTaskRow,
   type LeaderboardRow,
@@ -41,6 +43,7 @@ import {
 import type { ChallengeRow } from "@/app/challenges/services/challengesApi";
 import {
   getSyndicateAuthHeaders,
+  getSyndicateAuthToken,
   getSyndicateProfileAvatarUrl,
   getSyndicateUser,
   logoutSyndicateSession
@@ -71,6 +74,17 @@ const STATS_MOOD_LABEL: Record<string, string> = {
   happy: "Happy",
   tired: "Tired"
 };
+
+const _MOOD_ORDER: Record<string, number> = { energetic: 0, happy: 1, tired: 2 };
+
+function compareRowsByMoodThenSlot(a: ChallengeRow, b: ChallengeRow): number {
+  const ma = (a.mood || "").toLowerCase();
+  const mb = (b.mood || "").toLowerCase();
+  const oa = ma in _MOOD_ORDER ? _MOOD_ORDER[ma] : 99;
+  const ob = mb in _MOOD_ORDER ? _MOOD_ORDER[mb] : 99;
+  if (oa !== ob) return oa - ob;
+  return (a.slot || 0) - (b.slot || 0);
+}
 
 /**
  * Narrow hints for inferring a single bucket when `suitable_moods` does not name a mood explicitly.
@@ -115,7 +129,7 @@ function isPrimaryStatsMood(s: string): s is (typeof STATS_MOODS)[number] {
   return (STATS_MOODS as readonly string[]).includes(s);
 }
 
-/** Filter by mood: new daily batches store exact mood on `row.mood` (per category × 2). */
+/** Filter by mood: daily batches store exact mood on `row.mood` (one per category × mood). */
 function challengeMatchesStatsMood(row: ChallengeRow, mood: string): boolean {
   const rowMood = (row.mood || "").toLowerCase();
   if (rowMood === "custom") return true;
@@ -138,8 +152,8 @@ function challengeMatchesStatsMood(row: ChallengeRow, mood: string): boolean {
 }
 
 /**
- * Daily system batch stores 2 missions per (category, mood). Completing one fulfills that pair for the day —
- * hide the other incomplete row so the dashboard does not ask for a duplicate in the same mood slot.
+ * When multiple system rows share the same (category, mood) (legacy two-slot data), completing one
+ * hides the other incomplete row. Single-slot batches never duplicate keys.
  */
 function applyMoodCategoryPairHide(rows: ChallengeRow[], doneIds: Set<number>): ChallengeRow[] {
   const key = (r: ChallengeRow): string | null => {
@@ -176,7 +190,7 @@ const WEEK_BAR_COLORS = ["#ff6b9d", "#ffd54a", "#4fd1b8", "#7b9cff", "#c792ea", 
 
 /** Native `<select>`: colors from globals.css (`.syndicate-select--*`) so options stay legible on Windows. */
 const SYNDICATE_SELECT_BASE =
-  "syndicate-select syndicate-readable min-h-[40px] min-w-[132px] cursor-pointer rounded-lg px-3 py-2 text-[14px] font-medium outline-none transition focus:outline-none focus:ring-2";
+  "syndicate-select syndicate-readable min-h-[40px] min-w-0 w-full max-w-full cursor-pointer rounded-lg px-3 py-2 text-[14px] font-medium outline-none transition focus:outline-none focus:ring-2 sm:w-auto sm:min-w-[132px] sm:max-w-none";
 
 const SYNDICATE_SELECT_MOOD = `${SYNDICATE_SELECT_BASE} syndicate-select--mood focus:ring-[rgba(160,170,255,0.35)]`;
 
@@ -186,6 +200,7 @@ const SYNDICATE_SELECT_STATUS = `${SYNDICATE_SELECT_BASE} syndicate-select--stat
 
 const SYNDICATE_DATE_INPUT =
   "syndicate-date-input syndicate-readable mt-1.5 block w-full rounded-lg border border-[rgba(255,215,0,0.4)] bg-[#0a0e14] px-3 py-2.5 text-[15px] font-medium text-white/95 outline-none focus:border-[rgba(255,215,0,0.7)] focus:ring-2 focus:ring-[rgba(255,215,0,0.12)]";
+/** Max agent-generated missions completable per day (not how many appear on the board). */
 const MAX_AGENT_COMPLETIONS_PER_DAY = 4;
 const MAX_CUSTOM_COMPLETIONS_PER_DAY = 2;
 const POINTS_PER_10_POUNDS = 100;
@@ -224,13 +239,55 @@ const CTA_BTN =
   "rounded-md border border-[#fede00] bg-[linear-gradient(180deg,#fff06a_0%,#fede00_45%,#d5b900_100%)] text-black [box-shadow:inset_0_1px_0_rgba(255,250,180,0.92),inset_0_-2px_0_rgba(120,104,0,0.72),0_0_16px_rgba(254,222,0,0.48)] hover:brightness-110";
 const HUD_LABEL = "text-[10px] font-black uppercase tracking-[0.1em] text-[color:var(--gold)]/48";
 const HUD_VALUE = "mt-1 font-mono font-black text-[#fefce8]/94";
+
+/** Files in `public/assets/rewards/` (spaces encoded for URLs). */
+function rewardsPublicAsset(filename: string): string {
+  return `/assets/rewards/${encodeURIComponent(filename)}`;
+}
+
 const REWARD_MILESTONES = [
-  { id: "rw-20", unlock_points: 20, bonus_points: 5, title: "Bronze coin", image: "/assets/rewards/bronze.png" },
-  { id: "rw-50", unlock_points: 50, bonus_points: 8, title: "Silver coin", image: "/assets/rewards/silver.png" },
-  { id: "rw-100", unlock_points: 100, bonus_points: 12, title: "Gold coin", image: "/assets/rewards/gold.png" },
-  { id: "rw-150", unlock_points: 150, bonus_points: 18, title: "Blackcoin", image: "/assets/rewards/black.png" },
-  { id: "rw-200", unlock_points: 200, bonus_points: 25, title: "Lamborghini", image: "/assets/rewards/l.png" },
-  { id: "rw-350", unlock_points: 350, bonus_points: 40, title: "Private jet", image: "/assets/rewards/p.png" }
+  {
+    id: "rw-20",
+    unlock_points: 20,
+    bonus_points: 5,
+    title: "Bronze coin",
+    image: rewardsPublicAsset("Screenshot 2026-04-02 173802.png")
+  },
+  {
+    id: "rw-50",
+    unlock_points: 50,
+    bonus_points: 10,
+    title: "Silver coin",
+    image: rewardsPublicAsset("Screenshot 2026-04-02 173814.png")
+  },
+  {
+    id: "rw-100",
+    unlock_points: 100,
+    bonus_points: 20,
+    title: "Gold coin",
+    image: rewardsPublicAsset("Screenshot 2026-04-02 173830.png")
+  },
+  {
+    id: "rw-150",
+    unlock_points: 150,
+    bonus_points: 30,
+    title: "Blackcoin",
+    image: rewardsPublicAsset("Screenshot 2026-04-02 173840.png")
+  },
+  {
+    id: "rw-200",
+    unlock_points: 200,
+    bonus_points: 50,
+    title: "Lamborghini",
+    image: rewardsPublicAsset("lambo.png")
+  },
+  {
+    id: "rw-350",
+    unlock_points: 350,
+    bonus_points: 100,
+    title: "Private jet",
+    image: rewardsPublicAsset("jet.png")
+  }
 ] as const;
 
 type DayBucket = { total: number; byCategory: Record<string, number> };
@@ -727,7 +784,10 @@ function DetailPane({
   const remainingSec = secondsUntilLocalMidnight(nowMs);
 
   return (
-    <div id="syndicate-mission-detail-top" className="syndicate-readable syndicate-detail-pane w-full min-w-0 scroll-mt-24 px-0 sm:px-1">
+    <div
+      id="syndicate-mission-detail-top"
+      className="syndicate-readable syndicate-detail-pane mx-auto w-full min-w-0 max-w-[min(100%,48rem)] scroll-mt-24 px-2 sm:px-3 md:px-4"
+    >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <button
           type="button"
@@ -911,7 +971,8 @@ export function SyndicateAiChallengePanel() {
   const [rows, setRows] = useState<ChallengeRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>("load");
-  const [loadMessageIndex, setLoadMessageIndex] = useState(0);
+  /** True while today/ API reports incremental generation still running (partial rows may not match filters yet). */
+  const [dailyBatchStreaming, setDailyBatchStreaming] = useState(false);
   const [selected, setSelected] = useState<ChallengeRow | null>(null);
   const [pointsTotal, setPointsTotal] = useState(0);
   const [doneIds, setDoneIds] = useState<Set<number>>(() => new Set());
@@ -967,6 +1028,8 @@ export function SyndicateAiChallengePanel() {
   const bonusMissionSectionRef = useRef<HTMLElement | null>(null);
   const streakRestoreSectionRef = useRef<HTMLDivElement | null>(null);
   const initialLoadOnceRef = useRef(false);
+  /** After a 401 on bonus-task polling, stop hitting the endpoint until remount (avoids log spam / useless requests). */
+  const adminTasksPollPausedRef = useRef(false);
   const adminTaskRecorderRef = useRef<Record<number, MediaRecorder | null>>({});
   const adminTaskStreamRef = useRef<Record<number, MediaStream | null>>({});
   const adminTaskChunksRef = useRef<Record<number, BlobPart[]>>({});
@@ -1002,6 +1065,9 @@ export function SyndicateAiChallengePanel() {
     }
     onSyndicatePersist();
     void syncLeaderboard(pointsTotal, n);
+    setShowStatsProfile(false);
+    setSyndicateView("dashboard");
+    scrollSyndicateShellToTop();
   }, [profileName, profileImageDraft, pointsTotal]);
 
   const clearProfilePhoto = useCallback(() => {
@@ -1092,17 +1158,6 @@ export function SyndicateAiChallengePanel() {
     const t = window.setInterval(() => setNowTick(Date.now()), 1000);
     return () => window.clearInterval(t);
   }, []);
-
-  useEffect(() => {
-    if (busy !== "load") {
-      setLoadMessageIndex(0);
-      return;
-    }
-    const t = window.setInterval(() => {
-      setLoadMessageIndex((prev) => (prev + 1) % 4);
-    }, 1300);
-    return () => window.clearInterval(t);
-  }, [busy]);
 
   useEffect(() => {
     return () => {
@@ -1280,14 +1335,17 @@ export function SyndicateAiChallengePanel() {
 
   const pollReferral = useCallback(async () => {
     const device = getDeviceId();
+    const tokenBefore = getSyndicateAuthToken();
     try {
       const r = await fetch(challengesApiUrl(`referral/status/?device_id=${encodeURIComponent(device)}`), {
         headers: getSyndicateAuthHeaders(false),
         cache: "no-store"
       });
+      ensureSyndicateSessionOrRedirect(r, !!tokenBefore);
       const j = await r.json();
       if (r.ok) setCanClaimRestore(!!j.can_claim);
-    } catch {
+    } catch (e) {
+      if (e instanceof SyndicateSessionLostError) return;
       /* ignore */
     }
   }, []);
@@ -1328,8 +1386,8 @@ export function SyndicateAiChallengePanel() {
       }
     }
     for (const c of CATEGORIES) {
-      m[c].sort((a, b) => (a.slot || 0) - (b.slot || 0));
-      m[c] = m[c].slice(0, 2);
+      m[c].sort(compareRowsByMoodThenSlot);
+      m[c] = m[c].slice(0, 3);
     }
     return m;
   }, [filteredRows]);
@@ -1343,7 +1401,7 @@ export function SyndicateAiChallengePanel() {
     const out: ChallengeRow[] = [];
     const seen = new Set<number>();
     for (const c of CATEGORIES) {
-      const top = grouped[c].sort((a, b) => (a.slot || 0) - (b.slot || 0)).slice(0, 2);
+      const top = grouped[c].sort(compareRowsByMoodThenSlot).slice(0, 3);
       for (const r of top) {
         if (seen.has(r.id)) continue;
         seen.add(r.id);
@@ -1528,7 +1586,16 @@ export function SyndicateAiChallengePanel() {
     setBusy("load");
     try {
       const device = getDeviceId();
-      const td = await fetchChallengesToday(device);
+      const tokenBefore = getSyndicateAuthToken();
+      const td = await fetchChallengesTodayUntilComplete(device, {
+        onPartial: (partial) => {
+          const list = partial.results ?? [];
+          setRows(list);
+          setDailyBatchStreaming(partial.generating === true && partial.batch_complete === false);
+          if (list.length > 0) setBusy(null);
+        }
+      });
+      setDailyBatchStreaming(false);
       const list = td.results ?? [];
       setRows(list);
       if (list.length > 0) {
@@ -1537,9 +1604,11 @@ export function SyndicateAiChallengePanel() {
 
       const [stRes, at] = await Promise.all([
         fetch(`${API_BASE}/mindset/status/`, { headers: getSyndicateAuthHeaders(false) }),
-        fetchAdminTasksActive(device).catch(() => ({ results: [] as AdminTaskRow[] }))
+        fetchAdminTasksActive(device).catch(() => ({ results: [] as AdminTaskRow[] } as const))
       ]);
+      ensureSyndicateSessionOrRedirect(stRes, !!tokenBefore);
       const st = await stRes.json();
+      if ("unauthorized" in at && at.unauthorized) adminTasksPollPausedRef.current = true;
       setAdminTasks(at.results ?? []);
 
       if (!st.ready) {
@@ -1550,10 +1619,14 @@ export function SyndicateAiChallengePanel() {
         );
       }
     } catch (e) {
+      if (e instanceof SyndicateSessionLostError) {
+        return;
+      }
       setError(
         e instanceof Error ? e.message : "Cannot reach the API. Run: python manage.py runserver (in Backend/)"
       );
       setRows([]);
+      setDailyBatchStreaming(false);
     } finally {
       setBusy(null);
     }
@@ -1571,9 +1644,16 @@ export function SyndicateAiChallengePanel() {
     let cancelled = false;
     const run = async () => {
       if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+      if (!getSyndicateAuthToken() || adminTasksPollPausedRef.current) return;
       try {
         const out = await fetchAdminTasksActive(getDeviceId());
-        if (!cancelled) setAdminTasks(out.results ?? []);
+        if (cancelled) return;
+        if (out.unauthorized) {
+          adminTasksPollPausedRef.current = true;
+          setAdminTasks([]);
+          return;
+        }
+        setAdminTasks(out.results ?? []);
       } catch {
         /* ignore intermittent network errors */
       }
@@ -1645,11 +1725,13 @@ export function SyndicateAiChallengePanel() {
     setError(null);
     setBusy("regen");
     try {
+      const tokenBefore = getSyndicateAuthToken();
       const r = await fetch(challengesApiUrl("generate_daily/"), {
         method: "POST",
         headers: getSyndicateAuthHeaders(true),
         body: JSON.stringify({ force: true })
       });
+      ensureSyndicateSessionOrRedirect(r, !!tokenBefore);
       const j = (await r.json()) as { detail?: string; results?: ChallengeRow[] };
       if (!r.ok) {
         setError(typeof j.detail === "string" ? j.detail : "Regenerate failed");
@@ -1674,11 +1756,18 @@ export function SyndicateAiChallengePanel() {
       } catch {
         /* streak unchanged if progress fetch fails */
       }
-      const refreshed = await fetchChallengesToday(getDeviceId());
+      const refreshed = await fetchChallengesTodayUntilComplete(getDeviceId(), {
+        onPartial: (p) => {
+          setRows(p.results ?? []);
+          setDailyBatchStreaming(p.generating === true && p.batch_complete === false);
+        }
+      });
+      setDailyBatchStreaming(false);
       setRows(refreshed.results ?? []);
       setSelected(null);
       setChallengeLogVersion((v) => v + 1);
-    } catch {
+    } catch (e) {
+      if (e instanceof SyndicateSessionLostError) return;
       setError("Regenerate failed (network).");
     } finally {
       setBusy(null);
@@ -1695,6 +1784,20 @@ export function SyndicateAiChallengePanel() {
   }, [nowTick, mounted, busy, regenerateNewDay]);
 
   const userCustomCount = useMemo(() => rows.filter((r) => r.user_created).length, [rows]);
+
+  /** First time user opens mission detail, start the timer; reopening the same mission does not reset it. */
+  const openMissionDetail = useCallback((row: ChallengeRow) => {
+    if (!doneIds.has(row.id)) {
+      setMissionStartMap((prev) => {
+        if (prev[row.id] != null) return prev;
+        const t = Date.now();
+        const next = { ...prev, [row.id]: t };
+        persistMissionStartTimes(next);
+        return next;
+      });
+    }
+    setSelected(row);
+  }, [doneIds]);
 
   const createUserCustomTask = useCallback(async () => {
     const t = customTitle.trim();
@@ -1713,28 +1816,33 @@ export function SyndicateAiChallengePanel() {
       setRows((prev) => [...prev, result]);
       setCustomTitle("");
       setChallengeLogVersion((v) => v + 1);
+      openMissionDetail(result);
     } catch (e) {
+      if (e instanceof SyndicateSessionLostError) return;
       setError(e instanceof Error ? e.message : "Could not create mission");
     } finally {
       setBusy(null);
     }
-  }, [customTitle, customDifficulty, userCustomCount]);
+  }, [customTitle, customDifficulty, userCustomCount, openMissionDetail]);
 
   async function createInviteCode() {
     setReferralMsg(null);
     try {
+      const tokenBefore = getSyndicateAuthToken();
       const r = await fetch(challengesApiUrl("referral/create/"), {
         method: "POST",
         headers: getSyndicateAuthHeaders(true),
         body: JSON.stringify({ device_id: getDeviceId() })
       });
+      ensureSyndicateSessionOrRedirect(r, !!tokenBefore);
       const j = await r.json();
       if (!r.ok) {
         setReferralMsg(typeof j.detail === "string" ? j.detail : "Failed");
         return;
       }
       setInviteCode(j.code);
-    } catch {
+    } catch (e) {
+      if (e instanceof SyndicateSessionLostError) return;
       setReferralMsg("Could not create code.");
     }
   }
@@ -1742,11 +1850,13 @@ export function SyndicateAiChallengePanel() {
   async function redeemFriend() {
     setReferralMsg(null);
     try {
+      const tokenBefore = getSyndicateAuthToken();
       const r = await fetch(challengesApiUrl("referral/redeem/"), {
         method: "POST",
         headers: getSyndicateAuthHeaders(true),
         body: JSON.stringify({ code: friendCode.trim().toUpperCase(), device_id: getDeviceId() })
       });
+      ensureSyndicateSessionOrRedirect(r, !!tokenBefore);
       const j = await r.json();
       if (!r.ok) {
         setReferralMsg(typeof j.detail === "string" ? j.detail : "Invalid");
@@ -1754,7 +1864,8 @@ export function SyndicateAiChallengePanel() {
       }
       setReferralMsg("Code applied. Thanks for helping a friend.");
       setFriendCode("");
-    } catch {
+    } catch (e) {
+      if (e instanceof SyndicateSessionLostError) return;
       setReferralMsg("Network error.");
     }
   }
@@ -1762,11 +1873,13 @@ export function SyndicateAiChallengePanel() {
   async function claimRestore() {
     setReferralMsg(null);
     try {
+      const tokenBefore = getSyndicateAuthToken();
       const r = await fetch(challengesApiUrl("referral/claim/"), {
         method: "POST",
         headers: getSyndicateAuthHeaders(true),
         body: JSON.stringify({ device_id: getDeviceId() })
       });
+      ensureSyndicateSessionOrRedirect(r, !!tokenBefore);
       const j = await r.json();
       if (!r.ok) {
         setReferralMsg(typeof j.detail === "string" ? j.detail : "Cannot claim");
@@ -1782,7 +1895,8 @@ export function SyndicateAiChallengePanel() {
       onSyndicatePersist();
       setCanClaimRestore(false);
       setReferralMsg("Streak restored.");
-    } catch {
+    } catch (e) {
+      if (e instanceof SyndicateSessionLostError) return;
       setReferralMsg("Network error.");
     }
   }
@@ -1825,6 +1939,7 @@ export function SyndicateAiChallengePanel() {
       }
       setAdminTaskMsg("Saved. We will give you points later after analysis.");
     } catch (e) {
+      if (e instanceof SyndicateSessionLostError) return;
       setAdminTaskMsg(friendlyAdminTaskError(e));
     } finally {
       setAdminTaskBusyId(null);
@@ -1894,23 +2009,10 @@ export function SyndicateAiChallengePanel() {
       const refreshed = await fetchAdminTasksActive(getDeviceId());
       setAdminTasks(refreshed.results ?? []);
     } catch (e) {
+      if (e instanceof SyndicateSessionLostError) return;
       setAdminTaskMsg(friendlyAdminTaskError(e));
     }
   }
-
-  /** First time user opens mission detail, start the timer; reopening the same mission does not reset it. */
-  const openMissionDetail = useCallback((row: ChallengeRow) => {
-    if (!doneIds.has(row.id)) {
-      setMissionStartMap((prev) => {
-        if (prev[row.id] != null) return prev;
-        const t = Date.now();
-        const next = { ...prev, [row.id]: t };
-        persistMissionStartTimes(next);
-        return next;
-      });
-    }
-    setSelected(row);
-  }, [doneIds]);
 
   useLayoutEffect(() => {
     if (!selected) return;
@@ -1930,7 +2032,7 @@ export function SyndicateAiChallengePanel() {
           return;
         }
       } else if (completedAgentTodayCount >= MAX_AGENT_COMPLETIONS_PER_DAY) {
-        setError("You can complete up to 4 generated missions per day.");
+        setError(`You can complete up to ${MAX_AGENT_COMPLETIONS_PER_DAY} generated missions per day.`);
         return;
       }
     }
@@ -1997,6 +2099,7 @@ export function SyndicateAiChallengePanel() {
       persistMissionStartTimes(nextStarts);
       setMissionStartMap(nextStarts);
     } catch (e) {
+      if (e instanceof SyndicateSessionLostError) return;
       setError(e instanceof Error ? e.message : "Unable to score mission response.");
     } finally {
       setSubmitBusy(false);
@@ -2039,7 +2142,7 @@ export function SyndicateAiChallengePanel() {
           ? "Daily limit reached: only 2 custom missions can be completed."
           : null
         : completedAgentTodayCount >= MAX_AGENT_COMPLETIONS_PER_DAY
-          ? "Daily limit reached: only 4 generated missions can be completed."
+          ? `Daily limit reached: only ${MAX_AGENT_COMPLETIONS_PER_DAY} generated missions can be completed.`
           : null
       : null;
 
@@ -2130,7 +2233,7 @@ export function SyndicateAiChallengePanel() {
   return (
     <>
       {completionToast}
-      <div className="syndicate-dash-outer relative w-full min-w-0 space-y-5 border px-0 py-3 sm:py-5 max-md:space-y-4 max-md:border-0 max-md:bg-[linear-gradient(168deg,#050508_0%,#0d0818_44%,#0a0610_100%)] max-md:px-0 max-md:pb-3 max-md:pt-0 max-md:shadow-none">
+      <div className="syndicate-dash-outer relative mx-auto w-full min-w-0 max-w-[min(100%,100rem)] space-y-5 border px-0 py-3 sm:py-5 max-md:space-y-4 max-md:border-0 max-md:bg-[linear-gradient(168deg,#050508_0%,#0d0818_44%,#0a0610_100%)] max-md:px-0 max-md:pb-3 max-md:pt-0 max-md:shadow-none">
       <div className="pointer-events-none absolute inset-0 -z-10 syndicate-dash-scanlines max-md:opacity-35" />
       <div className="syndicate-dash-header mb-2 flex w-full min-w-0 flex-col gap-4 rounded-2xl border px-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-4 max-md:mb-0 max-md:rounded-none max-md:border-x-0 max-md:border-t-0 max-md:border-b-[rgba(255,215,0,0.24)] max-md:px-2 max-md:py-3">
         <div className="min-w-0 flex flex-col gap-2">
@@ -2231,9 +2334,9 @@ export function SyndicateAiChallengePanel() {
           </h2>
 
           <div className="grid gap-10 lg:grid-cols-2 lg:gap-12">
-            {statsProfileChartsLeftColumn}
+            <div className="order-2 min-w-0 lg:order-1">{statsProfileChartsLeftColumn}</div>
 
-            <div className="min-w-0 space-y-7 lg:border-l lg:border-white/10 lg:pl-10">
+            <div className="order-1 min-w-0 space-y-7 lg:order-2 lg:border-l lg:border-white/10 lg:pl-10">
               <div className="rounded-2xl border border-white/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.28))] p-5 sm:p-6 [box-shadow:inset_0_0_0_1px_rgba(255,255,255,0.06)]">
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6">
                   <div className="min-w-0 border-b border-white/10 pb-5 sm:border-b-0 sm:border-r sm:pb-0 sm:pr-6">
@@ -2368,8 +2471,8 @@ export function SyndicateAiChallengePanel() {
                     </button>
                   ) : null}
                 </div>
-                <div className="mt-4 flex flex-wrap items-end gap-3">
-                  <div className="min-w-[180px] flex-1">
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+                  <div className="w-full min-w-0 flex-1 sm:min-w-[12rem]">
                     <label className="text-[13px] font-medium text-white/60">Friend&apos;s code</label>
                     <input
                       value={friendCode}
@@ -2381,7 +2484,7 @@ export function SyndicateAiChallengePanel() {
                   <button
                     type="button"
                     onClick={() => void redeemFriend()}
-                    className="rounded-md border border-white/30 px-4 py-2.5 text-[14px] font-semibold text-white/90"
+                    className="w-full min-h-[44px] shrink-0 rounded-md border border-white/30 px-4 py-2.5 text-[14px] font-semibold text-white/90 sm:w-auto sm:min-h-0"
                   >
                     Redeem
                   </button>
@@ -2394,8 +2497,8 @@ export function SyndicateAiChallengePanel() {
                   History by date
                 </h3>
                 <p className="mt-1 text-[13px] text-white/65">Check your mission performance for any date.</p>
-                <div className="mt-3 flex flex-wrap items-end gap-3">
-                  <div className="min-w-[200px]">
+                <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+                  <div className="w-full min-w-0 sm:w-auto sm:min-w-[12rem]">
                     <label htmlFor="syndicate-history-date" className="text-[12px] font-semibold text-white/70">
                       Filter date
                     </label>
@@ -2411,12 +2514,15 @@ export function SyndicateAiChallengePanel() {
                   <button
                     type="button"
                     onClick={() => setHistoryFilterDate(todayLocalISO())}
-                    className={cn("px-4 py-2 text-[12px] font-bold uppercase tracking-[0.08em]", CTA_BTN)}
+                    className={cn(
+                      "min-h-[44px] w-full px-4 py-2 text-[12px] font-bold uppercase tracking-[0.08em] sm:min-h-0 sm:w-auto",
+                      CTA_BTN
+                    )}
                   >
                     Today
                   </button>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="mt-4 grid grid-cols-2 gap-2 max-[360px]:grid-cols-1 sm:grid-cols-4">
                   <div className="rounded-lg border border-white/12 bg-black/35 p-3">
                     <div className="text-[10px] uppercase tracking-[0.12em] text-white/55">Offered</div>
                     <div className="mt-1 text-[20px] font-black text-white">{filteredDayChallengeStats.offered ?? "—"}</div>
@@ -2436,8 +2542,8 @@ export function SyndicateAiChallengePanel() {
                     </div>
                   </div>
                 </div>
-                <div className="mt-4 max-h-[210px] overflow-auto rounded-lg border border-white/10 bg-black/25">
-                  <table className="w-full min-w-[480px] text-left text-[12px]">
+                <div className="mt-4 -mx-1 max-h-[210px] overflow-x-auto overflow-y-auto overscroll-x-contain rounded-lg border border-white/10 bg-black/25 sm:mx-0">
+                  <table className="w-full min-w-[min(100%,480px)] text-left text-[12px] sm:min-w-[480px]">
                     <thead className="border-b border-white/10 text-[10px] uppercase tracking-[0.12em] text-white/55">
                       <tr>
                         <th className="px-3 py-2">Date</th>
@@ -2467,8 +2573,8 @@ export function SyndicateAiChallengePanel() {
             </div>
           </div>
 
-          <div className="mt-10 border-t border-[rgba(255,215,0,0.2)] pt-8">
-            <div className="rounded-2xl border border-[rgba(120,200,255,0.34)] bg-[rgba(0,35,55,0.45)] p-5 sm:p-7 [box-shadow:inset_0_0_0_1px_rgba(180,240,255,0.08),0_0_24px_rgba(0,0,0,0.35)]">
+          <div className="mt-10 min-w-0 border-t border-[rgba(255,215,0,0.2)] pt-8">
+            <div className="min-w-0 rounded-2xl border border-[rgba(120,200,255,0.34)] bg-[rgba(0,35,55,0.45)] p-4 sm:p-7 [box-shadow:inset_0_0_0_1px_rgba(180,240,255,0.08),0_0_24px_rgba(0,0,0,0.35)]">
               <h3 className="text-[20px] font-black uppercase tracking-[0.12em] text-[#a8d8ff] sm:text-[24px]">
                 Leaderboard · Top 10
               </h3>
@@ -2480,41 +2586,73 @@ export function SyndicateAiChallengePanel() {
               ) : leaderboard.length === 0 ? (
                 <p className="mt-4 text-[15px] leading-relaxed text-white/55">No entries yet. Earn points and sync automatically.</p>
               ) : (
-                <div className="mt-4 overflow-x-auto rounded-lg border border-white/12 bg-black/35">
-                  <table className="w-full min-w-[560px] text-left text-[15px]">
-                    <thead className="border-b border-white/10 text-[12px] uppercase tracking-[0.12em] text-white/60">
-                      <tr>
-                        <th className="px-4 py-3">Rank</th>
-                        <th className="px-4 py-3 w-14" aria-hidden />
-                        <th className="px-4 py-3">Name</th>
-                        <th className="px-4 py-3 text-right">Points</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {leaderboard.slice(0, 10).map((e, i) => (
-                        <tr
-                          key={e.user_id != null ? `u${e.user_id}` : `${e.rank}-${e.display_name}-${i}`}
-                          className="border-t border-white/5 text-white/90"
-                        >
-                          <td className="px-4 py-3 tabular-nums text-white/75">{e.rank}</td>
-                          <td className="px-4 py-3">
-                            {e.avatar_url ? (
-                              <img
-                                src={e.avatar_url}
-                                alt=""
-                                className="h-9 w-9 rounded-full border border-white/20 bg-black/40 object-cover"
-                              />
-                            ) : (
-                              <span className="inline-block h-9 w-9 rounded-full border border-white/15 bg-white/10" />
-                            )}
-                          </td>
-                          <td className="px-4 py-3 font-semibold">{e.display_name}</td>
-                          <td className="px-4 py-3 text-right tabular-nums text-[color:var(--gold)]">{e.points_total}</td>
+                <>
+                  <ul
+                    className="mt-4 space-y-2 md:hidden"
+                    aria-label="Leaderboard top 10"
+                  >
+                    {leaderboard.slice(0, 10).map((e, i) => (
+                      <li
+                        key={e.user_id != null ? `u${e.user_id}` : `${e.rank}-${e.display_name}-${i}`}
+                        className="flex min-w-0 items-center gap-3 rounded-lg border border-white/12 bg-black/40 px-3 py-3"
+                      >
+                        <span className="w-7 shrink-0 text-center text-[13px] font-bold tabular-nums text-white/70">{e.rank}</span>
+                        <div className="shrink-0">
+                          {e.avatar_url ? (
+                            <img
+                              src={e.avatar_url}
+                              alt=""
+                              className="h-10 w-10 rounded-full border border-white/20 bg-black/40 object-cover"
+                            />
+                          ) : (
+                            <span className="inline-block h-10 w-10 rounded-full border border-white/15 bg-white/10" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[14px] font-semibold text-white">{e.display_name}</p>
+                        </div>
+                        <span className="shrink-0 text-[15px] font-black tabular-nums text-[color:var(--gold)]" title="Total points">
+                          {e.points_total}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-4 -mx-2 hidden overflow-x-auto overflow-y-visible overscroll-x-contain rounded-lg border border-white/12 bg-black/35 [scrollbar-width:thin] [-webkit-overflow-scrolling:touch] sm:mx-0 md:block">
+                    <table className="w-full min-w-[560px] text-left text-[15px]">
+                      <thead className="border-b border-white/10 text-[12px] uppercase tracking-[0.12em] text-white/60">
+                        <tr>
+                          <th className="px-4 py-3">Rank</th>
+                          <th className="px-4 py-3 w-14" aria-hidden />
+                          <th className="px-4 py-3">Name</th>
+                          <th className="px-4 py-3 text-right">Points</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {leaderboard.slice(0, 10).map((e, i) => (
+                          <tr
+                            key={e.user_id != null ? `u${e.user_id}` : `${e.rank}-${e.display_name}-${i}`}
+                            className="border-t border-white/5 text-white/90"
+                          >
+                            <td className="px-4 py-3 tabular-nums text-white/75">{e.rank}</td>
+                            <td className="px-4 py-3">
+                              {e.avatar_url ? (
+                                <img
+                                  src={e.avatar_url}
+                                  alt=""
+                                  className="h-9 w-9 rounded-full border border-white/20 bg-black/40 object-cover"
+                                />
+                              ) : (
+                                <span className="inline-block h-9 w-9 rounded-full border border-white/15 bg-white/10" />
+                              )}
+                            </td>
+                            <td className="px-4 py-3 font-semibold">{e.display_name}</td>
+                            <td className="px-4 py-3 text-right tabular-nums text-[color:var(--gold)]">{e.points_total}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -2655,7 +2793,7 @@ export function SyndicateAiChallengePanel() {
                     {dashboardBestCategoryLabel}
                   </span>
                 </div>
-                <div className="mt-3 h-[250px] w-full sm:h-[280px]">
+                <div className="mt-3 h-[220px] w-full min-w-0 sm:h-[250px] md:h-[280px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -2766,7 +2904,7 @@ export function SyndicateAiChallengePanel() {
                   <div
                     key={rw.id}
                     className={cn(
-                      "flex min-h-[240px] flex-col rounded-xl border px-3 pb-3 pt-3 text-center [box-shadow:0_0_0_1px_rgba(255,215,0,0.12),0_0_12px_rgba(255,180,0,0.1)] sm:min-h-[280px] md:min-h-[300px]",
+                      "flex min-h-[188px] flex-col rounded-xl border px-1.5 pb-2.5 pt-2.5 text-center [box-shadow:0_0_0_1px_rgba(255,215,0,0.12),0_0_12px_rgba(255,180,0,0.1)] sm:min-h-[280px] sm:px-3 sm:pb-3 sm:pt-3 md:min-h-[300px]",
                       redeemed
                         ? "border-emerald-300/70 bg-emerald-500/10 [box-shadow:0_0_14px_rgba(52,211,153,0.38)]"
                         : readyToRedeem
@@ -2776,7 +2914,7 @@ export function SyndicateAiChallengePanel() {
                     )}
                   >
                     <div className="flex flex-1 flex-col items-center">
-                      <div className="mx-auto mb-2.5 flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/12 bg-black/35 sm:h-[80px] sm:w-[80px]">
+                      <div className="mx-auto mb-2 flex h-[56px] w-[56px] shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/12 bg-black/35 sm:mb-2.5 sm:h-[80px] sm:w-[80px]">
                         <img
                           src={rw.image}
                           alt={rw.title}
@@ -2786,29 +2924,29 @@ export function SyndicateAiChallengePanel() {
                           }}
                         />
                       </div>
-                      <div className="text-[14px] font-black uppercase tracking-[0.14em] text-cyan-200 sm:text-[15px]">Level {level}</div>
-                      <div className="mt-1 max-w-[11rem] text-[12px] font-black uppercase leading-snug tracking-[0.06em] text-white sm:text-[13px]">
+                      <div className="text-[12px] font-black uppercase tracking-[0.12em] text-cyan-200 sm:text-[15px] sm:tracking-[0.14em]">Level {level}</div>
+                      <div className="mt-1 w-full max-w-full px-0.5 text-[10px] font-black uppercase leading-tight tracking-[0.04em] text-white sm:max-w-[11rem] sm:text-[13px] sm:leading-snug sm:tracking-[0.06em]">
                         {rw.title}
                       </div>
-                      <div className="mt-3 text-[14px] font-semibold tabular-nums text-white/88 sm:text-[15px]">
+                      <div className="mt-2 text-[12px] font-semibold tabular-nums text-white/88 sm:mt-3 sm:text-[15px]">
                         Req:{" "}
                         <span className="font-bold text-[color:var(--gold)] [text-shadow:0_0_12px_rgba(254,222,0,0.25)]">
                           {rw.unlock_points}
                         </span>
                       </div>
-                      <div className="mt-1.5 text-[14px] font-semibold tabular-nums text-cyan-100 sm:text-[15px]">
+                      <div className="mt-1 text-[12px] font-semibold tabular-nums text-cyan-100 sm:mt-1.5 sm:text-[15px]">
                         Bonus{" "}
                         <span className="font-bold text-emerald-200 [text-shadow:0_0_10px_rgba(52,211,153,0.2)]">
                           +{rw.bonus_points}
                         </span>
                       </div>
-                      <div className="mt-3 flex min-h-[2.75rem] w-full flex-col items-center justify-center px-0.5">
+                      <div className="mt-2 flex min-h-[2.25rem] w-full flex-col items-center justify-center px-0.5 sm:mt-3 sm:min-h-[2.75rem]">
                         {sequentialBlocked ? (
-                          <p className="text-center text-[12px] font-bold leading-snug text-amber-200 sm:text-[13px]">
+                          <p className="text-center text-[10px] font-bold leading-tight text-amber-200 sm:text-[13px] sm:leading-snug">
                             Redeem level {level - 1} first
                           </p>
                         ) : !redeemed && prevRedeemed && !hasPoints ? (
-                          <p className="text-center text-[12px] font-semibold leading-snug text-white/60 sm:text-[13px]">
+                          <p className="text-center text-[10px] font-semibold leading-tight text-white/60 sm:text-[13px] sm:leading-snug">
                             Need {rw.unlock_points} pts
                           </p>
                         ) : null}
@@ -2819,7 +2957,7 @@ export function SyndicateAiChallengePanel() {
                       disabled={!canRedeem || redeemed}
                       onClick={() => redeemRewardMilestone(rw.id)}
                       className={cn(
-                        "mt-auto w-full shrink-0 px-2 py-2.5 text-[12px] font-extrabold uppercase tracking-[0.08em] disabled:cursor-not-allowed disabled:opacity-45 sm:py-3 sm:text-[13px]",
+                        "mt-auto w-full shrink-0 px-1 py-2 text-[10px] font-extrabold uppercase tracking-[0.06em] disabled:cursor-not-allowed disabled:opacity-45 sm:px-2 sm:py-3 sm:text-[13px] sm:tracking-[0.08em]",
                         CTA_BTN
                       )}
                     >
@@ -2830,7 +2968,7 @@ export function SyndicateAiChallengePanel() {
               })}
             </div>
             <p className="mt-3 text-[11px] text-white/45">
-              Replace reward images by adding files at <code className="text-white/70">/public/assets/rewards/*.png</code> and updating `REWARD_MILESTONES`.
+              Reward art lives in <code className="text-white/70">public/assets/rewards/</code> — swap files there and update <code className="text-white/70">REWARD_MILESTONES</code> if filenames change.
             </p>
           </section>
           ) : null}
@@ -2950,15 +3088,15 @@ export function SyndicateAiChallengePanel() {
                         </div>
                       ) : null}
 
-                      <div className="grid lg:grid-cols-[1fr_400px] xl:grid-cols-[1fr_minmax(400px,440px)]">
-                        <div className="border-b border-white/10 p-4 sm:p-5 lg:border-b-0 lg:border-r lg:border-white/10">
+                      <div className="grid min-w-0 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] xl:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
+                        <div className="min-w-0 border-b border-white/10 p-4 sm:p-5 lg:border-b-0 lg:border-r lg:border-white/10">
                           <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">Task instructions</p>
                           <div className="mt-2 max-h-64 overflow-y-auto rounded-xl border border-white/10 bg-black/45 p-4 text-[14px] leading-relaxed text-white/88 [scrollbar-color:rgba(255,255,255,0.25)_transparent] sm:text-[15px] sm:leading-relaxed">
                             <div className="whitespace-pre-wrap break-words">{t.description || "No additional instructions."}</div>
                           </div>
                         </div>
 
-                        <div className="bg-black/25 p-4 sm:p-5">
+                        <div className="min-w-0 bg-black/25 p-4 sm:p-5">
                           {sub ? (
                             <div className="rounded-xl border border-cyan-400/35 bg-cyan-500/10 p-4 text-[14px] leading-snug text-cyan-100/95">
                               <p className="text-[11px] font-bold uppercase tracking-wider text-cyan-200/80">Submission received</p>
@@ -3140,8 +3278,8 @@ export function SyndicateAiChallengePanel() {
                 </div>
               </div>
             </div>
-            <div className="mt-4 flex flex-wrap items-end gap-3">
-              <div>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+              <div className="w-full min-w-0 sm:w-auto">
                 <label className="text-[13px] font-semibold uppercase tracking-[0.1em] text-white/70">Points to convert</label>
                 <input
                   type="number"
@@ -3149,13 +3287,13 @@ export function SyndicateAiChallengePanel() {
                   step={1}
                   value={convertPointsInput}
                   onChange={(e) => setConvertPointsInput(e.target.value)}
-                  className="mt-1.5 block min-h-[44px] w-full min-w-[160px] max-w-[220px] rounded-md border border-[rgba(255,215,0,0.45)] bg-[linear-gradient(180deg,rgba(28,22,12,0.92),rgba(10,8,6,0.96))] px-3 py-2.5 text-[16px] tabular-nums text-[#fefce8] [box-shadow:inset_0_1px_0_rgba(255,220,160,0.12)] sm:text-[15px]"
+                  className="mt-1.5 block min-h-[44px] w-full max-w-full rounded-md border border-[rgba(255,215,0,0.45)] bg-[linear-gradient(180deg,rgba(28,22,12,0.92),rgba(10,8,6,0.96))] px-3 py-2.5 text-[16px] tabular-nums text-[#fefce8] [box-shadow:inset_0_1px_0_rgba(255,220,160,0.12)] sm:max-w-[220px] sm:text-[15px]"
                 />
               </div>
               <button
                 type="button"
                 onClick={convertPointsToPounds}
-                className={cn("min-h-[44px] px-5 py-3 text-[15px] font-bold uppercase tracking-[0.08em]", CTA_BTN)}
+                className={cn("min-h-[44px] w-full px-5 py-3 text-[15px] font-bold uppercase tracking-[0.08em] sm:w-auto", CTA_BTN)}
               >
                 Convert now
               </button>
@@ -3199,7 +3337,7 @@ export function SyndicateAiChallengePanel() {
                   value={customDifficulty}
                   onChange={(e) => setCustomDifficulty(e.target.value as "easy" | "medium" | "hard")}
                   disabled={busy !== null || userCustomCount >= MAX_CUSTOM_COMPLETIONS_PER_DAY}
-                  className={SYNDICATE_SELECT_STATUS}
+                  className={cn(SYNDICATE_SELECT_STATUS, "w-full min-w-0 sm:w-auto")}
                 >
                   <option value="easy">Easy</option>
                   <option value="medium">Medium</option>
@@ -3311,37 +3449,68 @@ export function SyndicateAiChallengePanel() {
                 className="h-11 w-11 animate-spin rounded-full border-2 border-[rgba(255,215,0,0.35)] border-t-[color:var(--gold)]"
                 aria-hidden
               />
-              <p className="text-center text-[14px] font-semibold text-[#fef3c7]/85">
-                {[
-                  "Wait — your today challenges are generating...",
-                  "Preparing your daily missions...",
-                  "Building mood and category tasks for today...",
-                  "Almost ready. Loading your missions now..."
-                ][loadMessageIndex]}
+              <p className="text-[14px] text-white/50">Loading missions…</p>
+            </div>
+          ) : null}
+
+          {dailyBatchStreaming && filteredRows.length === 0 && rows.length > 0 && !error ? (
+            <div
+              className="syndicate-readable flex flex-col items-center justify-center gap-3 rounded-md border border-[rgba(120,200,255,0.25)] bg-[rgba(0,30,48,0.35)] py-12"
+              role="status"
+              aria-live="polite"
+              aria-label="Loading more missions"
+            >
+              <div
+                className="h-9 w-9 animate-spin rounded-full border-2 border-[rgba(255,215,0,0.35)] border-t-[color:var(--gold)]"
+                aria-hidden
+              />
+              <p className="text-[13px] font-medium text-cyan-100/85">Generating missions…</p>
+              <p className="max-w-sm px-4 text-center text-[12px] text-white/50">
+                More categories and moods are still loading. This is not your final list.
               </p>
             </div>
           ) : null}
 
-          {!busy && filteredRows.length === 0 && rows.length > 0 ? (
+          {!busy && !dailyBatchStreaming && filteredRows.length === 0 && rows.length > 0 ? (
             <div className="syndicate-readable rounded-md border border-white/10 py-8 text-center text-[13px] text-white/50">No missions match these filters.</div>
           ) : null}
 
-          {!busy && rows.length === 0 && !error ? (
+          {!busy && !dailyBatchStreaming && rows.length === 0 && !error ? (
             <div className="syndicate-readable rounded-lg border border-white/10 bg-black/35 py-10 text-center text-[13px] text-white/55">
               No missions for today. Check that the API is running, mindsets are ingested on the server, then reload.
             </div>
           ) : null}
 
-          {CATEGORIES.map((cat) => {
-            const list = byCategoryFiltered[cat] ?? [];
-            if (list.length === 0) return null;
-            return (
-              <div key={cat}>
-                <h4 className="syndicate-readable mb-3 border-b border-[rgba(255,215,0,0.2)] pb-2 text-[13px] font-bold uppercase tracking-[0.2em] text-[color:var(--gold)]/90">
-                  {CAT_LABEL[cat] ?? cat}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
+            {CATEGORIES.map((cat) => {
+              const list = byCategoryFiltered[cat] ?? [];
+              if (list.length === 0) return null;
+              return (
+                <div key={cat}>
+                  <h4 className="syndicate-readable mb-3 border-b border-[rgba(255,215,0,0.2)] pb-2 text-[13px] font-bold uppercase tracking-[0.2em] text-[color:var(--gold)]/90">
+                    {CAT_LABEL[cat] ?? cat}
+                  </h4>
+                  <div className="grid grid-cols-1 gap-4">
+                    {list.map((row) => (
+                      <CompactCard
+                        key={row.id}
+                        row={row}
+                        done={doneIds.has(row.id)}
+                        dayCountdownSec={dayCountdownSec}
+                        onView={() => openMissionDetail(row)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            {(byCategoryFiltered.other ?? []).length > 0 ? (
+              <div key="other-cat">
+                <h4 className="syndicate-readable mb-3 border-b border-[rgba(255,215,0,0.2)] pb-2 text-[13px] font-bold uppercase tracking-[0.2em] text-white/75">
+                  Other
                 </h4>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
-                  {list.map((row) => (
+                <div className="grid grid-cols-1 gap-4">
+                  {(byCategoryFiltered.other ?? []).map((row) => (
                     <CompactCard
                       key={row.id}
                       row={row}
@@ -3352,26 +3521,8 @@ export function SyndicateAiChallengePanel() {
                   ))}
                 </div>
               </div>
-            );
-          })}
-          {(byCategoryFiltered.other ?? []).length > 0 ? (
-            <div key="other-cat">
-              <h4 className="syndicate-readable mb-3 border-b border-[rgba(255,215,0,0.2)] pb-2 text-[13px] font-bold uppercase tracking-[0.2em] text-white/75">
-                Other
-              </h4>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
-                {(byCategoryFiltered.other ?? []).map((row) => (
-                  <CompactCard
-                    key={row.id}
-                    row={row}
-                    done={doneIds.has(row.id)}
-                    dayCountdownSec={dayCountdownSec}
-                    onView={() => openMissionDetail(row)}
-                  />
-                ))}
-              </div>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
           </>
           ) : null}
         </>

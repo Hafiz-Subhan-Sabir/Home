@@ -1,6 +1,7 @@
 """Challenge generation and daily batch business logic."""
 from __future__ import annotations
 
+import hashlib
 import secrets
 import re
 from concurrent.futures import ThreadPoolExecutor
@@ -12,24 +13,32 @@ from api.models import MindsetKnowledge, UploadedDocument
 from django.db import IntegrityError
 
 from api.services.openai_client import (
+    _pad_user_custom_description,
     enrich_user_custom_challenge_payload,
     generate_agent_daily_quote,
     generate_category_pair_batch,
     generate_challenge_for_mood,
+    generate_daily_category_energetic_one,
+    generate_daily_category_happy_tired_pair,
     generate_daily_category_moods_batch,
     generate_mood_category_challenges_batch,
     merge_user_device_mindset_summary,
+    normalize_challenge_payload,
     validate_unique_challenge_titles,
 )
 
-from .models import GeneratedChallenge, UserAgentDailyQuote, UserDeviceMindsetContext
+from .models import AgentDailyQuote, GeneratedChallenge, UserAgentDailyQuote, UserDeviceMindsetContext
+
+# Imported lazily in ensure_daily_challenges_for_device to avoid circular import with device_batch_async.
 
 EMPTY_DEVICE_BATCH = ""
 
 CATEGORIES = ["business", "money", "fitness", "power", "grooming"]
 
-# 5 categories × 3 moods (no sad) × 2 slots
-DAILY_SYSTEM_BATCH_SIZE = 30
+# 5 categories × 3 moods (no sad) × 1 slot — one mission per category per mood
+DAILY_SYSTEM_BATCH_SIZE = 15
+# First wave: one energetic mission per category (shown on first HTTP response before phase 2).
+DAILY_PHASE1_ENERGETIC_COUNT = 5
 
 VALID_MOODS = frozenset({"energetic", "happy", "tired"})
 STOPWORDS = {
@@ -175,6 +184,61 @@ def recent_titles() -> list[str]:
     ]
 
 
+def prune_stale_syndicate_daily_rows() -> None:
+    """
+    Drop calendar-dated syndicate content before **today** (local date).
+
+    Kept in DB:
+    - ``GeneratedChallenge`` where ``creator_device`` is non-empty (user-created custom missions),
+      any ``challenge_date`` (only those rows are long-lived task records here).
+
+    Removed:
+    - AI/system daily challenges: ``GeneratedChallenge`` with ``creator_device == ""`` and
+      ``challenge_date`` strictly before today.
+    - Per-user agent lines: ``UserAgentDailyQuote`` with ``quote_date`` before today.
+    - Legacy global quotes: ``AgentDailyQuote`` with ``quote_date`` before today.
+
+    Other apps (mindsets, uploads, progress JSON, leaderboard, admin tasks) are not touched here.
+    """
+    today = timezone.localdate()
+    GeneratedChallenge.objects.filter(creator_device="", challenge_date__lt=today).delete()
+    UserAgentDailyQuote.objects.filter(quote_date__lt=today).delete()
+    AgentDailyQuote.objects.filter(quote_date__lt=today).delete()
+
+
+def device_batch_is_phase1_energetic_only(*, device_id: str, today) -> bool:
+    """True when today's device batch has exactly 5 energetic rows, one per category."""
+    device_id = (device_id or "").strip()
+    qs = GeneratedChallenge.objects.filter(
+        challenge_date=today,
+        creator_device="",
+        device_batch_device_id=device_id,
+    )
+    rows = list(qs)
+    if len(rows) != DAILY_PHASE1_ENERGETIC_COUNT:
+        return False
+    if any((r.mood or "").lower() != "energetic" for r in rows):
+        return False
+    cats = {r.category for r in rows}
+    return cats == set(CATEGORIES)
+
+
+def get_today_device_system_rows(device_id: str) -> list[dict]:
+    """Serialized system missions for this device key for local calendar today."""
+    device_id = (device_id or "").strip()
+    today = timezone.localdate()
+    qs = GeneratedChallenge.objects.filter(
+        challenge_date=today,
+        creator_device="",
+        device_batch_device_id=device_id,
+    )
+    ordered = sorted(
+        qs,
+        key=lambda x: (category_sort_key(x.category), _mood_sort_key(x.mood), x.slot, x.id),
+    )
+    return [serialize_challenge_row(c) for c in ordered]
+
+
 def serialize_challenge_row(c: GeneratedChallenge) -> dict:
     p = c.payload or {}
     return {
@@ -296,6 +360,39 @@ def score_mission_response(
     }
 
 
+def _fallback_user_custom_payload(title: str, difficulty: str) -> dict:
+    """Deterministic expansion when OpenAI is unavailable or returns unusable output."""
+    t = (title or "").strip()
+    diff = (difficulty or "medium").lower().strip()
+    if diff not in ("easy", "medium", "hard"):
+        diff = "medium"
+    desc = _pad_user_custom_description(t, "")
+    merged = normalize_challenge_payload(
+        {
+            "challenge_title": t,
+            "challenge_description": desc,
+            "example_tasks": [
+                f"Write one concrete micro-step for «{t[:100]}» and give it a ten-minute timer.",
+                "Do that step once, then one sentence on what worked or what to adjust.",
+                "File the takeaway where your future self will see it tomorrow morning.",
+            ],
+            "benefits_list": [
+                "You train momentum on your own terms without waiting for external assignments.",
+                "You collect proof that small execution beats large intentions.",
+                "You keep agency over how discipline shows up in your day.",
+            ],
+            "based_on_mindset": "User-authored custom mission (saved without live AI expansion).",
+            "suitable_moods": ["custom", "energetic"],
+            "difficulty": diff,
+            "category": "personal",
+        }
+    )
+    merged["challenge_title"] = t
+    merged["difficulty"] = diff
+    merged["category"] = "personal"
+    return merged
+
+
 def create_user_custom_challenge(device_id: str, title: str, difficulty: str) -> tuple[bool, dict | None, str | None]:
     """Up to 2 user tasks per device per calendar day; AI expands title; random points 0–9."""
     device_id = (device_id or "").strip()
@@ -321,10 +418,10 @@ def create_user_custom_challenge(device_id: str, title: str, difficulty: str) ->
 
     try:
         payload = enrich_user_custom_challenge_payload(latest.payload, title, diff, ctx.summary or "")
-    except RuntimeError as e:
+    except ValueError as e:
         return False, None, str(e)
-    except Exception as e:
-        return False, None, str(e)
+    except Exception:
+        payload = _fallback_user_custom_payload(title, diff)
 
     points = _points_from_difficulty(diff)
     one_line = (payload.get("based_on_mindset") or "").strip()[:240] or (payload.get("challenge_description") or "")[:200]
@@ -396,8 +493,143 @@ def _daily_personalization_for_device(device_id: str) -> str:
     return "\n\n".join(parts)
 
 
+def _persist_challenge_payloads_for_device(
+    device_id: str,
+    today,
+    doc,
+    items: list[dict],
+) -> list[dict]:
+    """Create GeneratedChallenge rows from AI payload dicts; return serialized rows."""
+    rows: list[dict] = []
+    for item in items:
+        diff = str(item.get("difficulty") or "medium").lower().strip()
+        if diff not in ("easy", "medium", "hard"):
+            diff = "medium"
+        pts = _points_from_difficulty(diff)
+        cat = str(item.get("category") or "").lower().strip()
+        if cat not in CATEGORIES:
+            cat = "business"
+        slot = int(item.get("slot") or 1)
+        if slot not in (1, 2):
+            slot = 1
+        mood = str(item.get("mood") or "").lower().strip()
+        if mood not in VALID_MOODS:
+            mood = "energetic"
+        c = GeneratedChallenge.objects.create(
+            mood=mood,
+            category=cat,
+            difficulty=diff,
+            points=pts,
+            challenge_date=today,
+            slot=slot,
+            payload=item,
+            source_document=doc,
+            device_batch_device_id=device_id,
+        )
+        rows.append(serialize_challenge_row(c))
+    return rows
+
+
+def generate_device_ai_batch_phase_energetic_parallel(device_id: str, _user_id: int) -> tuple[bool, str | None]:
+    """
+    Parallel OpenAI: one energetic mission per category (5 total). Caller should hold
+    ``device_generation_lock`` when replacing a corrupt partial batch; do not call when 15 rows exist.
+    """
+    device_id = (device_id or "").strip()
+    today = timezone.localdate()
+    latest = MindsetKnowledge.objects.select_related("source").order_by("-updated_at").first()
+    if not latest:
+        return False, "Ingest a document first."
+    personalization = _daily_personalization_for_device(device_id)
+    doc = latest.source
+    avoid = recent_titles()
+    accumulated: list[dict] = []
+    try:
+        with ThreadPoolExecutor(max_workers=len(CATEGORIES)) as pool:
+            futures = [
+                pool.submit(
+                    partial(
+                        generate_daily_category_energetic_one,
+                        latest.payload,
+                        avoid,
+                        cat,
+                        personalization=personalization,
+                    )
+                )
+                for cat in CATEGORIES
+            ]
+            for fut in futures:
+                accumulated.extend(fut.result())
+        if len(accumulated) != DAILY_PHASE1_ENERGETIC_COUNT:
+            return False, f"Expected {DAILY_PHASE1_ENERGETIC_COUNT} energetic challenges, got {len(accumulated)}"
+        validate_unique_challenge_titles(accumulated)
+        _persist_challenge_payloads_for_device(device_id, today, doc, accumulated)
+    except RuntimeError as e:
+        return False, str(e)
+    except ValueError as e:
+        return False, str(e)
+    except Exception as e:
+        return False, str(e)
+    return True, None
+
+
+def generate_device_ai_batch_phase_happy_tired_parallel(device_id: str, _user_id: int) -> tuple[bool, str | None]:
+    """
+    Parallel OpenAI: happy + tired per category (10 total). Expects exactly 5 energetic rows already stored.
+    Caller must hold ``device_generation_lock``.
+    """
+    device_id = (device_id or "").strip()
+    today = timezone.localdate()
+    if not device_batch_is_phase1_energetic_only(device_id=device_id, today=today):
+        return False, "Phase 2 requires five energetic missions (one per category)."
+    latest = MindsetKnowledge.objects.select_related("source").order_by("-updated_at").first()
+    if not latest:
+        return False, "Ingest a document first."
+    personalization = _daily_personalization_for_device(device_id)
+    doc = latest.source
+    qs_existing = GeneratedChallenge.objects.filter(
+        challenge_date=today,
+        creator_device="",
+        device_batch_device_id=device_id,
+    )
+    existing_items = [dict(c.payload or {}) for c in qs_existing.order_by("id")]
+    avoid = recent_titles()
+    accumulated: list[dict] = []
+    try:
+        with ThreadPoolExecutor(max_workers=len(CATEGORIES)) as pool:
+            futures = [
+                pool.submit(
+                    partial(
+                        generate_daily_category_happy_tired_pair,
+                        latest.payload,
+                        avoid,
+                        cat,
+                        personalization=personalization,
+                    )
+                )
+                for cat in CATEGORIES
+            ]
+            for fut in futures:
+                accumulated.extend(fut.result())
+        if len(accumulated) != DAILY_SYSTEM_BATCH_SIZE - DAILY_PHASE1_ENERGETIC_COUNT:
+            return (
+                False,
+                f"Expected {DAILY_SYSTEM_BATCH_SIZE - DAILY_PHASE1_ENERGETIC_COUNT} happy/tired challenges, got {len(accumulated)}",
+            )
+        validate_unique_challenge_titles(existing_items + accumulated)
+        _persist_challenge_payloads_for_device(device_id, today, doc, accumulated)
+    except RuntimeError as e:
+        return False, str(e)
+    except ValueError as e:
+        return False, str(e)
+    except Exception as e:
+        return False, str(e)
+    return True, None
+
+
 def ensure_daily_challenges(force_regenerate: bool = False) -> tuple[bool, list[dict], str | None]:
     """Create or return today's shared challenges: 5 categories × 3 moods × 2 slots (no device scope)."""
+    prune_stale_syndicate_daily_rows()
     today = timezone.localdate()
     qs_all = GeneratedChallenge.objects.filter(challenge_date=today)
     qs_system = qs_all.filter(creator_device="", device_batch_device_id=EMPTY_DEVICE_BATCH)
@@ -503,14 +735,18 @@ def ensure_daily_challenges(force_regenerate: bool = False) -> tuple[bool, list[
     return True, rows, None
 
 
-def ensure_daily_challenges_for_device(device_id: str, force_regenerate: bool = False) -> tuple[bool, list[dict], str | None]:
+def ensure_daily_challenges_for_device(device_id: str, force_regenerate: bool = False, user=None) -> tuple[bool, list[dict], str | None]:
     """
-    Today's system challenges scoped to one user key — generated via OpenAI (no DB clone of other users' batches).
+    Today's system challenges scoped to one user key.
     Custom missions (creator_device set) are merged separately in the view.
+    When creating or regenerating an empty batch: five energetic missions are generated under the
+    device lock, then happy/tired rows are kicked off in a background thread (same as challenges_today).
     """
     device_id = (device_id or "").strip()
     if not device_id:
         return ensure_daily_challenges(force_regenerate=force_regenerate)
+
+    prune_stale_syndicate_daily_rows()
 
     today = timezone.localdate()
     qs_dev = GeneratedChallenge.objects.filter(
@@ -534,82 +770,48 @@ def ensure_daily_challenges_for_device(device_id: str, force_regenerate: bool = 
         return True, [serialize_challenge_row(c) for c in ordered], None
 
     if force_regenerate or qs_dev.count() == 0:
-        qs_dev.delete()
+        from .device_batch_async import device_generation_lock, start_device_ai_batch_phase2
 
-    latest = MindsetKnowledge.objects.select_related("source").order_by("-updated_at").first()
-    if not latest:
-        return False, [], "Ingest a document first."
+        uid = getattr(user, "id", None) if user is not None else None
+        uid_arg = uid if uid is not None else 0
 
-    avoid = recent_titles()
-    personalization = _daily_personalization_for_device(device_id)
-    accumulated: list[dict] = []
-    try:
-        with ThreadPoolExecutor(max_workers=len(CATEGORIES)) as pool:
-            futures = [
-                pool.submit(
-                    partial(
-                        generate_daily_category_moods_batch,
-                        latest.payload,
-                        avoid,
-                        cat,
-                        personalization=personalization,
-                    )
+        with device_generation_lock(device_id, today):
+            qs_dev = GeneratedChallenge.objects.filter(
+                challenge_date=today,
+                creator_device="",
+                device_batch_device_id=device_id,
+            )
+            if not force_regenerate and qs_dev.count() >= DAILY_SYSTEM_BATCH_SIZE:
+                ordered = sorted(
+                    qs_dev,
+                    key=lambda x: (category_sort_key(x.category), _mood_sort_key(x.mood), x.slot, x.id),
                 )
-                for cat in CATEGORIES
-            ]
-            for fut in futures:
-                chunk = fut.result()
-                accumulated.extend(chunk)
-        validate_unique_challenge_titles(accumulated)
-    except RuntimeError as e:
-        return False, [], str(e)
-    except ValueError as e:
-        return False, [], str(e)
-    except Exception as e:
-        return False, [], str(e)
+                return True, [serialize_challenge_row(c) for c in ordered], None
+            if not force_regenerate and qs_dev.count() > 0:
+                ordered = sorted(
+                    qs_dev,
+                    key=lambda x: (category_sort_key(x.category), _mood_sort_key(x.mood), x.slot, x.id),
+                )
+                return True, [serialize_challenge_row(c) for c in ordered], None
+            qs_dev.delete()
+            ok_p1, err_p1 = generate_device_ai_batch_phase_energetic_parallel(device_id, uid_arg)
+            if not ok_p1:
+                return False, [], err_p1
 
-    if len(accumulated) != DAILY_SYSTEM_BATCH_SIZE:
-        return False, [], f"Expected {DAILY_SYSTEM_BATCH_SIZE} challenges, got {len(accumulated)}"
+        start_device_ai_batch_phase2(device_id, uid_arg)
 
-    doc = latest.source
-    rows: list[dict] = []
-    for item in accumulated:
-        diff = str(item.get("difficulty") or "medium").lower().strip()
-        if diff not in ("easy", "medium", "hard"):
-            diff = "medium"
-        pts = _points_from_difficulty(diff)
-        cat = str(item.get("category") or "").lower().strip()
-        if cat not in CATEGORIES:
-            cat = "business"
-        slot = int(item.get("slot") or 1)
-        if slot not in (1, 2):
-            slot = 1
-        mood = str(item.get("mood") or "").lower().strip()
-        if mood not in VALID_MOODS:
-            mood = "energetic"
-
-        c = GeneratedChallenge.objects.create(
-            mood=mood,
-            category=cat,
-            difficulty=diff,
-            points=pts,
+        qs_out = GeneratedChallenge.objects.filter(
             challenge_date=today,
-            slot=slot,
-            payload=item,
-            source_document=doc,
+            creator_device="",
             device_batch_device_id=device_id,
         )
-        rows.append(serialize_challenge_row(c))
-
-    rows.sort(
-        key=lambda r: (
-            category_sort_key(str(r.get("category") or "")),
-            _mood_sort_key(str(r.get("mood") or "")),
-            r.get("slot", 1),
-            r.get("id", 0),
+        ordered = sorted(
+            qs_out,
+            key=lambda x: (category_sort_key(x.category), _mood_sort_key(x.mood), x.slot, x.id),
         )
-    )
-    return True, rows, None
+        return True, [serialize_challenge_row(c) for c in ordered], None
+
+    raise RuntimeError("ensure_daily_challenges_for_device: unexpected fallthrough")
 
 
 def ensure_category_pair(category: str, device_batch_device_id: str | None = None) -> tuple[bool, list[dict], str | None]:
@@ -669,6 +871,7 @@ def ensure_category_pair(category: str, device_batch_device_id: str | None = Non
 
 def ensure_agent_quote_for_user(user) -> tuple[bool, str | None, str | None]:
     """Return persisted agent brief for this user for local calendar today, generating once via OpenAI if missing."""
+    prune_stale_syndicate_daily_rows()
     today = timezone.localdate()
     existing = UserAgentDailyQuote.objects.filter(user=user, quote_date=today).first()
     if existing:
@@ -678,22 +881,48 @@ def ensure_agent_quote_for_user(user) -> tuple[bool, str | None, str | None]:
     if not latest:
         return False, None, "Ingest a document first."
 
-    avoid = [
-        t.strip()
-        for t in UserAgentDailyQuote.objects.filter(user=user).order_by("-quote_date")[:50].values_list("text", flat=True)
-        if t and str(t).strip()
-    ]
-    # Also avoid today's lines already assigned to other users to keep quotes unique per day.
     today_taken = {
         t.strip()
         for t in UserAgentDailyQuote.objects.filter(quote_date=today).values_list("text", flat=True)
         if t and str(t).strip()
     }
-    avoid.extend(list(today_taken))
-    # Stable user key nudges model toward per-user variation even on same day/data.
-    user_key = f"user:{getattr(user, 'id', '')}:{getattr(user, 'email', '') or getattr(user, 'username', '')}"
+    # Prioritize every quote already used today (any user) so [:N] in the API client never drops them
+    # behind one operator's long history — that caused identical lines across users.
+    today_first = [
+        t.strip()
+        for t in UserAgentDailyQuote.objects.filter(quote_date=today).values_list("text", flat=True)
+        if t and str(t).strip()
+    ]
+    user_past = [
+        t.strip()
+        for t in UserAgentDailyQuote.objects.filter(user=user)
+        .exclude(quote_date=today)
+        .order_by("-quote_date")[:50]
+        .values_list("text", flat=True)
+        if t and str(t).strip()
+    ]
+    seen_avoid: set[str] = set()
+    avoid: list[str] = []
+    for chunk in (today_first, user_past):
+        for line in chunk:
+            if line not in seen_avoid:
+                seen_avoid.add(line)
+                avoid.append(line)
+
+    uid = int(getattr(user, "pk", None) or getattr(user, "id", None) or 0)
+    device_key = f"user:{uid}" if uid else ""
+    personalization = _daily_personalization_for_device(device_key)
+    creative_seed = hashlib.sha256(f"{uid}:{today.isoformat()}".encode()).hexdigest()[:28]
+
     try:
-        text = generate_agent_daily_quote(latest.payload, avoid, today.isoformat(), user_key=user_key)
+        text = generate_agent_daily_quote(
+            latest.payload,
+            avoid,
+            today.isoformat(),
+            operator_id=uid or None,
+            personalization=personalization,
+            creative_seed=creative_seed,
+        )
     except Exception as e:
         return False, None, str(e)
 
@@ -702,7 +931,14 @@ def ensure_agent_quote_for_user(user) -> tuple[bool, str | None, str | None]:
         for _ in range(3):
             avoid.append(text)
             try:
-                text = generate_agent_daily_quote(latest.payload, avoid, today.isoformat(), user_key=user_key)
+                text = generate_agent_daily_quote(
+                    latest.payload,
+                    avoid,
+                    today.isoformat(),
+                    operator_id=uid or None,
+                    personalization=personalization,
+                    creative_seed=creative_seed,
+                )
             except Exception as e:
                 return False, None, str(e)
             if text not in today_taken:

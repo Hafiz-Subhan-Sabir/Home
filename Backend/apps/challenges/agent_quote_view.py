@@ -5,7 +5,6 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-
 from api.models import MindsetKnowledge
 
 from .services import ensure_agent_quote_for_user

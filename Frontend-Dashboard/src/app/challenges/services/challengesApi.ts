@@ -2,7 +2,7 @@
  * Challenges API — base URL from existing env (single .env / NEXT_PUBLIC_SYNDICATE_API_URL).
  * All paths are under /api/challenges/ on the Django server.
  */
-import { getSyndicateAuthHeaders } from "@/lib/syndicateAuth";
+import { getSyndicateAuthHeaders, getSyndicateAuthToken, logoutSyndicateSession } from "@/lib/syndicateAuth";
 const API_BASE = (process.env.NEXT_PUBLIC_SYNDICATE_API_URL ?? "http://127.0.0.1:8000/api").replace(/\/$/, "");
 
 export function challengesApiUrl(path: string): string {
@@ -10,12 +10,41 @@ export function challengesApiUrl(path: string): string {
   return `${API_BASE}/challenges/${p}`;
 }
 
+/** Thrown after clearing session when the API rejects the token (e.g. DRF "Invalid token."). */
+export class SyndicateSessionLostError extends Error {
+  constructor() {
+    super("Session expired.");
+    this.name = "SyndicateSessionLostError";
+  }
+}
+
+/**
+ * Call after an authenticated request. If the server returns 401 and we had sent a token, clears storage and sends the user to login.
+ */
+export function ensureSyndicateSessionOrRedirect(r: Response, hadAuthToken: boolean): void {
+  if (r.status !== 401 || !hadAuthToken) return;
+  logoutSyndicateSession();
+  if (typeof window !== "undefined") {
+    const p = window.location.pathname;
+    if (p.startsWith("/syndicate/login")) {
+      window.location.reload();
+    } else {
+      const next = `${window.location.pathname}${window.location.search}` || "/";
+      window.location.replace(`/syndicate/login?next=${encodeURIComponent(next)}`);
+    }
+  }
+  throw new SyndicateSessionLostError();
+}
+
 async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
+  const tokenBefore = getSyndicateAuthToken();
   const headers = {
     ...(init?.headers ?? {}),
     ...getSyndicateAuthHeaders(false)
   };
-  return fetch(url, { ...init, headers });
+  const r = await fetch(url, { ...init, headers });
+  ensureSyndicateSessionOrRedirect(r, !!tokenBefore);
+  return r;
 }
 
 export type SyndicateProgressPayload = {
@@ -164,6 +193,10 @@ export type ChallengeRow = {
 export type ChallengesTodayResponse = {
   results: ChallengeRow[];
   detail?: string;
+  /** False while background generation streams categories into the DB (poll until true). */
+  batch_complete?: boolean;
+  /** True when the server is still generating today’s agent batch (incremental). */
+  generating?: boolean;
 };
 
 export async function fetchChallengesToday(deviceId?: string): Promise<ChallengesTodayResponse> {
@@ -174,6 +207,30 @@ export async function fetchChallengesToday(deviceId?: string): Promise<Challenge
     throw new Error(typeof j.detail === "string" ? j.detail : "Failed to load missions");
   }
   return j;
+}
+
+/** Poll until batch_complete or generating stops (incremental daily generation). */
+export async function fetchChallengesTodayUntilComplete(
+  deviceId: string,
+  opts?: {
+    intervalMs?: number;
+    maxPolls?: number;
+    /** Called after each fetch so the UI can show missions as categories finish saving. */
+    onPartial?: (td: ChallengesTodayResponse) => void;
+  }
+): Promise<ChallengesTodayResponse> {
+  const intervalMs = opts?.intervalMs ?? 450;
+  const maxPolls = opts?.maxPolls ?? 120;
+  let td = await fetchChallengesToday(deviceId);
+  opts?.onPartial?.(td);
+  let polls = 0;
+  while (td.generating === true && td.batch_complete === false && polls < maxPolls) {
+    await new Promise((r) => setTimeout(r, intervalMs));
+    td = await fetchChallengesToday(deviceId);
+    opts?.onPartial?.(td);
+    polls += 1;
+  }
+  return td;
 }
 
 export async function postUserCustomChallenge(
@@ -328,11 +385,27 @@ export type AdminTaskRow = {
   } | null;
 };
 
-export async function fetchAdminTasksActive(deviceId: string): Promise<{ results: AdminTaskRow[] }> {
-  const r = await apiFetch(challengesApiUrl(`admin_tasks/active/?device_id=${encodeURIComponent(deviceId)}`), { cache: "no-store" });
-  const j = (await r.json()) as { results?: AdminTaskRow[]; detail?: string };
-  if (!r.ok) throw new Error(typeof j.detail === "string" ? j.detail : "Failed to load admin tasks");
-  return { results: j.results ?? [] };
+export type AdminTasksActiveResult = {
+  results: AdminTaskRow[];
+  /** Set when the server returned 401; callers should stop polling until remount/login. */
+  unauthorized?: boolean;
+};
+
+export async function fetchAdminTasksActive(deviceId: string): Promise<AdminTasksActiveResult> {
+  if (!getSyndicateAuthToken()) {
+    return { results: [] };
+  }
+  try {
+    const r = await apiFetch(challengesApiUrl(`admin_tasks/active/?device_id=${encodeURIComponent(deviceId)}`), { cache: "no-store" });
+    const j = (await r.json()) as { results?: AdminTaskRow[]; detail?: string };
+    if (!r.ok) throw new Error(typeof j.detail === "string" ? j.detail : "Failed to load admin tasks");
+    return { results: j.results ?? [] };
+  } catch (e) {
+    if (e instanceof SyndicateSessionLostError) {
+      return { results: [], unauthorized: true };
+    }
+    throw e;
+  }
 }
 
 export async function postAdminTaskSubmit(args: {

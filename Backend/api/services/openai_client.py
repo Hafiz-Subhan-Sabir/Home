@@ -218,16 +218,13 @@ def generate_daily_challenges_batch(
     raise last_err or RuntimeError("Daily batch generation failed")
 
 
-_DAILY_CATEGORY_MOODS_MAX_TOKENS = 9000
+_DAILY_CATEGORY_MOODS_MAX_TOKENS = 5500
 
-# Fixed order for 6 challenges per category: 3 moods × 2 slots (no sad).
+# Fixed order for 3 challenges per category: one per mood, slot 1 only (no sad).
 _MOOD_SLOT_ORDER: list[tuple[str, int]] = [
     ("energetic", 1),
-    ("energetic", 2),
     ("happy", 1),
-    ("happy", 2),
     ("tired", 1),
-    ("tired", 2),
 ]
 
 
@@ -238,7 +235,7 @@ def generate_daily_category_moods_batch(
     *,
     personalization: str = "",
 ) -> list[dict[str, Any]]:
-    """Returns 6 challenge dicts for one category: energetic/happy/tired × slots 1–2."""
+    """Returns 3 challenge dicts for one category: one per mood (energetic, happy, tired), slot 1."""
     from .prompts import daily_category_moods_system_prompt
 
     cat = (category or "").lower().strip()
@@ -263,8 +260,8 @@ def generate_daily_category_moods_batch(
         try:
             data = chat_json(system, user, max_tokens=_DAILY_CATEGORY_MOODS_MAX_TOKENS, temperature=temp)
             challenges = data.get("challenges") or []
-            if len(challenges) != 6:
-                raise ValueError(f"Expected 6 challenges for category {cat}, got {len(challenges)}")
+            if len(challenges) != 3:
+                raise ValueError(f"Expected 3 challenges for category {cat}, got {len(challenges)}")
 
             normalized: list[dict[str, Any]] = []
             for i, ch in enumerate(challenges):
@@ -299,6 +296,140 @@ def generate_daily_category_moods_batch(
                 continue
             raise
     raise last_err or RuntimeError("Daily category moods batch failed")
+
+
+_DAILY_ENERGETIC_ONE_MAX_TOKENS = 2200
+_DAILY_HAPPY_TIRED_PAIR_MAX_TOKENS = 3800
+
+
+def generate_daily_category_energetic_one(
+    mindsets_payload: dict[str, Any],
+    avoid_titles: list[str],
+    category: str,
+    *,
+    personalization: str = "",
+) -> list[dict[str, Any]]:
+    """Returns exactly one challenge dict: energetic, slot 1 (fast first paint per category)."""
+    from .prompts import daily_category_energetic_one_system_prompt
+
+    cat = (category or "").lower().strip()
+    if cat not in _VALID_PAIR_CATEGORIES:
+        raise ValueError("Invalid category")
+
+    system = daily_category_energetic_one_system_prompt(cat)
+    user_payload: dict[str, Any] = {
+        "stored_mindsets": mindsets_payload,
+        "titles_to_avoid": avoid_titles[:200],
+    }
+    if (personalization or "").strip():
+        user_payload["user_personalization"] = (personalization or "").strip()[:2500]
+    user = json.dumps(user_payload, ensure_ascii=False)
+
+    last_err: Exception | None = None
+    for attempt in range(2):
+        temp = 0.65 if attempt == 0 else 0.78
+        try:
+            data = chat_json(system, user, max_tokens=_DAILY_ENERGETIC_ONE_MAX_TOKENS, temperature=temp)
+            challenges = data.get("challenges") or []
+            if len(challenges) != 1:
+                raise ValueError(f"Expected 1 energetic challenge for category {cat}, got {len(challenges)}")
+            ch = challenges[0]
+            if not isinstance(ch, dict):
+                raise ValueError("Invalid challenge item")
+            diff = str(ch.get("difficulty") or "medium").lower().strip()
+            if diff not in POINTS_BY_DIFFICULTY:
+                diff = "medium"
+            ch = normalize_challenge_payload(dict(ch))
+            ch["difficulty"] = diff
+            ch["points"] = POINTS_BY_DIFFICULTY[diff]
+            ch["category"] = cat
+            ch["mood"] = "energetic"
+            ch["slot"] = 1
+            sm = ch.get("suitable_moods")
+            if not isinstance(sm, list) or not sm:
+                ch["suitable_moods"] = ["energetic"]
+            else:
+                sm2 = [str(x).strip() for x in sm if str(x).strip()]
+                if not any(str(x).lower() == "energetic" for x in sm2):
+                    ch["suitable_moods"] = ["energetic"] + sm2[:2]
+                else:
+                    ch["suitable_moods"] = sm2[:4]
+            _assert_unique_challenge_titles([ch])
+            return [ch]
+        except ValueError as e:
+            last_err = e
+            if "Duplicate" in str(e) and attempt == 0:
+                continue
+            raise
+    raise last_err or RuntimeError("Daily category energetic-one batch failed")
+
+
+_HAPPY_TIRED_ORDER: list[tuple[str, int]] = [("happy", 1), ("tired", 1)]
+
+
+def generate_daily_category_happy_tired_pair(
+    mindsets_payload: dict[str, Any],
+    avoid_titles: list[str],
+    category: str,
+    *,
+    personalization: str = "",
+) -> list[dict[str, Any]]:
+    """Returns two challenge dicts: happy then tired, slot 1 each."""
+    from .prompts import daily_category_happy_tired_system_prompt
+
+    cat = (category or "").lower().strip()
+    if cat not in _VALID_PAIR_CATEGORIES:
+        raise ValueError("Invalid category")
+
+    system = daily_category_happy_tired_system_prompt(cat)
+    user_payload: dict[str, Any] = {
+        "stored_mindsets": mindsets_payload,
+        "titles_to_avoid": avoid_titles[:200],
+    }
+    if (personalization or "").strip():
+        user_payload["user_personalization"] = (personalization or "").strip()[:2500]
+    user = json.dumps(user_payload, ensure_ascii=False)
+
+    last_err: Exception | None = None
+    for attempt in range(2):
+        temp = 0.65 if attempt == 0 else 0.78
+        try:
+            data = chat_json(system, user, max_tokens=_DAILY_HAPPY_TIRED_PAIR_MAX_TOKENS, temperature=temp)
+            challenges = data.get("challenges") or []
+            if len(challenges) != 2:
+                raise ValueError(f"Expected 2 happy/tired challenges for category {cat}, got {len(challenges)}")
+            normalized: list[dict[str, Any]] = []
+            for i, ch in enumerate(challenges):
+                if not isinstance(ch, dict):
+                    raise ValueError("Invalid challenge item")
+                exp_mood, exp_slot = _HAPPY_TIRED_ORDER[i]
+                diff = str(ch.get("difficulty") or "medium").lower().strip()
+                if diff not in POINTS_BY_DIFFICULTY:
+                    diff = "medium"
+                ch = normalize_challenge_payload(dict(ch))
+                ch["difficulty"] = diff
+                ch["points"] = POINTS_BY_DIFFICULTY[diff]
+                ch["category"] = cat
+                ch["mood"] = exp_mood
+                ch["slot"] = exp_slot
+                sm = ch.get("suitable_moods")
+                if not isinstance(sm, list) or not sm:
+                    ch["suitable_moods"] = [exp_mood]
+                else:
+                    sm2 = [str(x).strip() for x in sm if str(x).strip()]
+                    if not any(str(x).lower() == exp_mood for x in sm2):
+                        ch["suitable_moods"] = [exp_mood] + sm2[:2]
+                    else:
+                        ch["suitable_moods"] = sm2[:4]
+                normalized.append(ch)
+            _assert_unique_challenge_titles(normalized)
+            return normalized
+        except ValueError as e:
+            last_err = e
+            if "Duplicate" in str(e) and attempt == 0:
+                continue
+            raise
+    raise last_err or RuntimeError("Daily category happy/tired batch failed")
 
 
 def validate_unique_challenge_titles(items: list[dict[str, Any]]) -> None:
@@ -415,6 +546,20 @@ def generate_mood_category_challenges_batch(
     return out
 
 
+def _pad_user_custom_description(user_title: str, existing: str) -> str:
+    """Ensure a long enough description when the model returns too little text."""
+    base = (existing or "").strip()
+    filler = (
+        f"This mission starts from your own idea: «{user_title}». "
+        "Clarify the smallest version you can execute today, schedule it, run it once without perfectionism, "
+        "and note one honest lesson before you close the loop. When attention drifts, pause for sixty seconds, "
+        "then return to the single next action you already chose."
+    )
+    if len(base) >= 40:
+        return base
+    return f"{base}\n\n{filler}".strip() if base else filler
+
+
 def enrich_user_custom_challenge_payload(
     mindsets_payload: dict[str, Any],
     title: str,
@@ -440,11 +585,25 @@ def enrich_user_custom_challenge_payload(
         },
         ensure_ascii=False,
     )
-    data = chat_json(USER_CUSTOM_CHALLENGE_EXPAND_SYSTEM, user, max_tokens=3600, temperature=0.72)
+    data: dict[str, Any] | None = None
+    for attempt in range(2):
+        try:
+            temp = 0.72 if attempt == 0 else 0.86
+            data = chat_json(USER_CUSTOM_CHALLENGE_EXPAND_SYSTEM, user, max_tokens=3600, temperature=temp)
+            break
+        except (json.JSONDecodeError, TypeError, ValueError) as e:
+            if attempt == 1:
+                raise RuntimeError(f"Invalid model response for custom task: {e}") from e
+        except Exception:
+            if attempt == 1:
+                raise
+    assert data is not None
+
+    desc = _pad_user_custom_description(t, str(data.get("challenge_description") or "").strip())
 
     merged: dict[str, Any] = {
         "challenge_title": t,
-        "challenge_description": str(data.get("challenge_description") or "").strip(),
+        "challenge_description": desc,
         "example_tasks": data.get("example_tasks"),
         "benefits_list": data.get("benefits_list"),
         "based_on_mindset": str(data.get("based_on_mindset") or "").strip(),
@@ -454,6 +613,7 @@ def enrich_user_custom_challenge_payload(
     }
     ch = normalize_challenge_payload(merged)
     ch["challenge_title"] = t
+    ch["challenge_description"] = desc
     ch["difficulty"] = diff
     ch["category"] = "personal"
     sm = ch.get("suitable_moods")
@@ -465,8 +625,6 @@ def enrich_user_custom_challenge_payload(
             ch["suitable_moods"] = ["custom"] + sm2[:4]
         else:
             ch["suitable_moods"] = sm2[:6]
-    if len(ch.get("challenge_description") or "") < 40:
-        raise ValueError("Challenge description too short")
     return ch
 
 
@@ -501,21 +659,26 @@ def generate_agent_daily_quote(
     mindsets_payload: dict[str, Any],
     avoid_quotes: list[str],
     calendar_date_iso: str,
-    user_key: str = "",
+    *,
+    operator_id: int | None = None,
+    personalization: str = "",
+    creative_seed: str = "",
 ) -> str:
-    """Single JSON quote line for the Syndicate dashboard; avoids past lines."""
+    """Single JSON quote line for the Syndicate dashboard; avoids past / other users' lines."""
     from .prompts import AGENT_QUOTE_SYSTEM
 
     user = json.dumps(
         {
             "stored_mindsets": mindsets_payload,
-            "quotes_to_avoid": avoid_quotes[:60],
+            "quotes_to_avoid": avoid_quotes[:100],
             "calendar_date": calendar_date_iso,
-            "user_key": (user_key or "").strip(),
+            "operator_id": operator_id,
+            "personalization": (personalization or "").strip()[:2000],
+            "creative_seed": (creative_seed or "").strip()[:64],
         },
         ensure_ascii=False,
     )
-    data = chat_json(AGENT_QUOTE_SYSTEM, user, max_tokens=220, temperature=0.88)
+    data = chat_json(AGENT_QUOTE_SYSTEM, user, max_tokens=260, temperature=0.92)
     q = str(data.get("quote") or "").strip()
     if len(q) < 12:
         raise ValueError("Agent quote too short")

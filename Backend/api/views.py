@@ -258,7 +258,7 @@ def syndicate_bootstrap(request):
     if auto_challenge and mindset_ok:
         before = GeneratedChallenge.objects.filter(challenge_date=timezone.localdate()).count()
         device_key = f"user:{request.user.id}"
-        ok, rows, err = ensure_daily_challenges_for_device(device_key, force_regenerate=False)
+        ok, rows, err = ensure_daily_challenges_for_device(device_key, force_regenerate=False, user=request.user)
         if not ok and err:
             return Response(
                 {

@@ -319,6 +319,14 @@ export async function syncLeaderboard(pointsTotal: number, displayName?: string)
   });
 }
 
+/** Qualitative mission check from the OpenAI agent (null if API key missing or call failed). */
+export type MissionAgentAttestation = {
+  verdict: "pass" | "partial" | "needs_work";
+  attestation: string;
+  checks: string[];
+  suggestions: string[];
+};
+
 export type MissionScoreResponse = {
   awarded_points: number;
   max_points: number;
@@ -334,6 +342,7 @@ export type MissionScoreResponse = {
     repetition_penalty: number;
     syndicate_bonus: number;
   };
+  agent_attestation?: MissionAgentAttestation | null;
 };
 
 export async function postScoreMissionResponse(args: {
@@ -342,17 +351,27 @@ export async function postScoreMissionResponse(args: {
   difficulty: string;
   maxPoints: number;
   elapsedSeconds: number;
+  /** Mission body text — improves agent attestation quality. */
+  challengeDescription?: string;
+  /** Example actions from the mission card. */
+  exampleTasks?: string[];
 }): Promise<MissionScoreResponse> {
+  const body: Record<string, unknown> = {
+    response_text: args.responseText.trim(),
+    challenge_title: args.challengeTitle,
+    difficulty: args.difficulty,
+    max_points: args.maxPoints,
+    elapsed_seconds: args.elapsedSeconds
+  };
+  const desc = (args.challengeDescription ?? "").trim();
+  if (desc) body.challenge_description = desc;
+  if (Array.isArray(args.exampleTasks) && args.exampleTasks.length > 0) {
+    body.example_tasks = args.exampleTasks.map((t) => String(t).trim()).filter(Boolean).slice(0, 8);
+  }
   const r = await apiFetch(challengesApiUrl("score_response/"), {
     method: "POST",
     headers: getSyndicateAuthHeaders(true),
-    body: JSON.stringify({
-      response_text: args.responseText.trim(),
-      challenge_title: args.challengeTitle,
-      difficulty: args.difficulty,
-      max_points: args.maxPoints,
-      elapsed_seconds: args.elapsedSeconds
-    })
+    body: JSON.stringify(body)
   });
   const j = (await r.json()) as MissionScoreResponse & { detail?: string };
   if (!r.ok) {

@@ -44,6 +44,7 @@ from .services import (
     get_today_device_system_rows,
     prune_stale_syndicate_daily_rows,
     run_generate,
+    enrich_mission_score_with_agent_attestation,
     score_mission_response,
     serialize_challenge_row,
 )
@@ -566,8 +567,9 @@ def challenges_generate_daily(request):
 @api_view(["POST"])
 def mission_score_response(request):
     """
-    Score a mission response text using deterministic rubric:
-    time spent, word count, repetition penalty, syndicate bonus, title relevance.
+    Score a mission response (deterministic rubric) and attach an optional OpenAI
+    agent attestation against mission description / examples when ``OPENAI_API_KEY`` is set.
+    Optional body fields: ``challenge_description`` (string), ``example_tasks`` (string array).
     """
     response_text = (request.data.get("response_text") or "").strip()
     title = (request.data.get("challenge_title") or "").strip()
@@ -588,12 +590,26 @@ def mission_score_response(request):
     if max_points < 0:
         max_points = 0
 
+    challenge_description = (request.data.get("challenge_description") or "").strip()
+    example_tasks_raw = request.data.get("example_tasks")
+    example_tasks: list[str] = []
+    if isinstance(example_tasks_raw, list):
+        example_tasks = [str(x).strip() for x in example_tasks_raw[:8] if str(x).strip()]
+
     scored = score_mission_response(
         title=title,
         response_text=response_text,
         elapsed_seconds=max(0, elapsed_seconds),
         max_points=max_points,
         difficulty=difficulty or "medium",
+    )
+    scored = enrich_mission_score_with_agent_attestation(
+        scored,
+        title=title,
+        response_text=response_text,
+        difficulty=difficulty or "medium",
+        challenge_description=challenge_description,
+        example_tasks=example_tasks,
     )
     return Response(scored)
 

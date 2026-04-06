@@ -46,6 +46,64 @@ def chat_json(
     return json.loads(text)
 
 
+def attest_user_mission_response(
+    *,
+    challenge_title: str,
+    challenge_description: str,
+    example_tasks: list[str],
+    difficulty: str,
+    user_response: str,
+) -> dict[str, Any] | None:
+    """
+    Qualitative attestation of the user's mission response vs mission rules (OpenAI JSON).
+    Returns None if the API fails or key is missing (caller wraps).
+    """
+    from .prompts import MISSION_RESPONSE_ATTEST_SYSTEM
+
+    desc = (challenge_description or "").strip()[:2800]
+    ex_lines = []
+    for t in (example_tasks or [])[:5]:
+        s = str(t).strip()[:500]
+        if s:
+            ex_lines.append(s)
+    ex_text = "\n".join(f"- {line}" for line in ex_lines)[:1400]
+    payload = {
+        "challenge_title": (challenge_title or "").strip()[:500],
+        "challenge_description": desc,
+        "example_tasks_text": ex_text or "(none provided)",
+        "difficulty": (difficulty or "medium").strip().lower()[:16],
+        "user_response": (user_response or "").strip()[:8000],
+    }
+    user = "Mission attestation input (JSON):\n" + json.dumps(payload, ensure_ascii=False)
+    try:
+        raw = chat_json(MISSION_RESPONSE_ATTEST_SYSTEM, user, temperature=0.35, max_tokens=700)
+    except Exception:
+        return None
+    return _normalize_mission_attestation(raw)
+
+
+def _normalize_mission_attestation(raw: Any) -> dict[str, Any] | None:
+    if not isinstance(raw, dict):
+        return None
+    verdict = str(raw.get("verdict") or "partial").strip().lower()
+    if verdict not in ("pass", "partial", "needs_work"):
+        verdict = "partial"
+    att = str(raw.get("attestation") or "").strip()
+    if not att:
+        return None
+    att = att[:2400]
+    checks = _coerce_str_list(raw.get("checks"), max_items=6)
+    suggestions = _coerce_str_list(raw.get("suggestions"), max_items=6)
+    if len(checks) < 1:
+        checks = ["Response reviewed against mission title and description."]
+    return {
+        "verdict": verdict,
+        "attestation": att,
+        "checks": checks[:6],
+        "suggestions": suggestions[:6],
+    }
+
+
 def extract_mindsets_from_document(document_text: str) -> dict[str, Any]:
     from .prompts import INGEST_SYSTEM
 

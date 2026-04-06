@@ -360,6 +360,39 @@ def score_mission_response(
     }
 
 
+def enrich_mission_score_with_agent_attestation(
+    scored: dict,
+    *,
+    title: str,
+    response_text: str,
+    difficulty: str,
+    challenge_description: str = "",
+    example_tasks: list[str] | None = None,
+) -> dict:
+    """
+    After numeric scoring, call the OpenAI mission agent to attest whether the user's
+    response meets the mission's rules and intent. Adds key ``agent_attestation`` (dict or null).
+    """
+    from django.conf import settings
+
+    api_key = (getattr(settings, "OPENAI_API_KEY", None) or "").strip().strip("\ufeff")
+    if not api_key:
+        return {**scored, "agent_attestation": None}
+    try:
+        from api.services.openai_client import attest_user_mission_response
+
+        att = attest_user_mission_response(
+            challenge_title=title,
+            challenge_description=challenge_description or "",
+            example_tasks=list(example_tasks or []),
+            difficulty=difficulty or "medium",
+            user_response=response_text,
+        )
+        return {**scored, "agent_attestation": att}
+    except Exception:
+        return {**scored, "agent_attestation": None}
+
+
 def _fallback_user_custom_payload(title: str, difficulty: str) -> dict:
     """Deterministic expansion when OpenAI is unavailable or returns unusable output."""
     t = (title or "").strip()

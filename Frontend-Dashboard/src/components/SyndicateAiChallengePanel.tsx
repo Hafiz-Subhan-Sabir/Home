@@ -966,6 +966,13 @@ function CompactCard({
   );
 }
 
+function agentAttestPanelClass(verdict: string): string {
+  const v = (verdict || "").toLowerCase();
+  if (v === "pass") return "border-emerald-400/45 bg-emerald-500/10";
+  if (v === "needs_work") return "border-amber-400/50 bg-amber-500/12";
+  return "border-cyan-400/40 bg-cyan-500/10";
+}
+
 function DetailPane({
   row,
   initialResponse,
@@ -1186,6 +1193,48 @@ function DetailPane({
                 ({scorePreview.breakdown.elapsed_seconds}s) · Relevance:{" "}
                 {Math.round(scorePreview.breakdown.relevance_score * 100)}%
               </p>
+              {scorePreview.agent_attestation ? (
+                <div
+                  className={cn(
+                    "mt-4 rounded-lg border p-4 sm:p-5 [box-shadow:inset_0_0_0_1px_rgba(255,255,255,0.06)]",
+                    agentAttestPanelClass(scorePreview.agent_attestation.verdict)
+                  )}
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-[0.14em] text-white/75">Agent attestation</span>
+                    <span className="rounded border border-white/25 bg-black/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white/90">
+                      {(scorePreview.agent_attestation.verdict || "partial").replace(/_/g, " ")}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-[14px] leading-relaxed text-white/92 sm:text-[15px]">
+                    {scorePreview.agent_attestation.attestation}
+                  </p>
+                  {scorePreview.agent_attestation.checks.length > 0 ? (
+                    <div className="mt-3">
+                      <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/50">Checks</div>
+                      <ul className="mt-1.5 list-disc space-y-1 pl-5 text-[13px] leading-snug text-white/82">
+                        {scorePreview.agent_attestation.checks.map((c, i) => (
+                          <li key={i}>{c}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  {scorePreview.agent_attestation.suggestions.length > 0 ? (
+                    <div className="mt-3 rounded-md border border-white/12 bg-black/30 p-3 sm:p-4">
+                      <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/50">Suggestions</div>
+                      <ul className="mt-1.5 list-disc space-y-1 pl-5 text-[13px] leading-snug text-white/78">
+                        {scorePreview.agent_attestation.suggestions.map((s, i) => (
+                          <li key={i}>{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              ) : scorePreview.agent_attestation === null ? (
+                <p className="mt-3 text-[11px] leading-snug text-white/45 sm:text-[12px]">
+                  Agent attestation unavailable (no API key or model error). Numeric score above still applies.
+                </p>
+              ) : null}
             </>
           ) : null}
         </div>
@@ -2284,12 +2333,17 @@ export function SyndicateAiChallengePanel() {
       const startedAt = missionStartMap[id] ?? Date.now();
       const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
       // elapsedSeconds = first open of this mission’s detail → submit (timer not reset on repeat opens).
+      const sp = selected.payload;
+      const exampleTasksRaw = Array.isArray(sp?.example_tasks) ? sp.example_tasks : [];
+      const exampleTasks = exampleTasksRaw.map((x) => String(x).trim()).filter(Boolean);
       const scored = await postScoreMissionResponse({
         responseText: text,
-        challengeTitle: selected.payload?.challenge_title ?? "Mission",
-        difficulty: selected.difficulty || selected.payload?.difficulty || "medium",
+        challengeTitle: sp?.challenge_title ?? "Mission",
+        difficulty: selected.difficulty || sp?.difficulty || "medium",
         maxPoints: selected.points || 0,
-        elapsedSeconds
+        elapsedSeconds,
+        challengeDescription: typeof sp?.challenge_description === "string" ? sp.challenge_description : undefined,
+        exampleTasks: exampleTasks.length > 0 ? exampleTasks : undefined
       });
       setLastScore(scored);
       const nextScores = { ...missionScores, [id]: scored };

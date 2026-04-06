@@ -29,6 +29,16 @@ for _env_path in (BASE_DIR / ".env", Path.cwd() / ".env"):
 else:
     load_dotenv(encoding="utf-8-sig")
 
+# SQLite + MEDIA_ROOT on disk. When true: ignore DATABASE_URL / Postgres, S3-compatible storage, and Cloudinary.
+# Default: on when RAILWAY_ENVIRONMENT is unset (local). Set DJANGO_USE_LOCAL_SQLITE_AND_MEDIA=false to use
+# Postgres + cloud storage from .env on your machine.
+_explicit_local = (os.environ.get("DJANGO_USE_LOCAL_SQLITE_AND_MEDIA") or "").strip().lower()
+if _explicit_local in ("1", "true", "yes"):
+    USE_LOCAL_SQLITE_AND_MEDIA = True
+elif _explicit_local in ("0", "false", "no"):
+    USE_LOCAL_SQLITE_AND_MEDIA = False
+else:
+    USE_LOCAL_SQLITE_AND_MEDIA = not (os.environ.get("RAILWAY_ENVIRONMENT") or "").strip()
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -61,6 +71,8 @@ USE_CLOUDINARY = bool(
         and (os.environ.get("CLOUDINARY_API_SECRET") or "").strip()
     )
 )
+if USE_LOCAL_SQLITE_AND_MEDIA:
+    USE_CLOUDINARY = False
 
 
 def _s3_object_storage_config() -> dict | None:
@@ -113,6 +125,8 @@ def _s3_object_storage_config() -> dict | None:
 
 
 _s3_object_storage_cfg = _s3_object_storage_config()
+if USE_LOCAL_SQLITE_AND_MEDIA:
+    _s3_object_storage_cfg = None
 USE_S3_OBJECT_STORAGE = _s3_object_storage_cfg is not None
 
 # Source docs + uploads (place files here or upload via API)
@@ -187,9 +201,8 @@ WSGI_APPLICATION = 'syndicate_backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 #
-# Local: SQLite (default). Production / Railway: set DATABASE_URL (Postgres plugin injects it),
-# or set PGHOST + PGPORT + PGUSER + PGPASSWORD + PGDATABASE. Optional DATABASE_PUBLIC_URL
-# is used if DATABASE_URL is empty (some templates expose only the public URL).
+# SQLite at BASE_DIR / db.sqlite3 when USE_LOCAL_SQLITE_AND_MEDIA is true (default off Railway).
+# Otherwise: DATABASE_URL / DATABASE_* / PG* → Postgres via dj_database_url.
 
 
 def _resolved_postgres_url() -> str | None:
@@ -219,7 +232,7 @@ DATABASES = {
     }
 }
 
-_pg_url = _resolved_postgres_url()
+_pg_url = None if USE_LOCAL_SQLITE_AND_MEDIA else _resolved_postgres_url()
 if _pg_url:
     import dj_database_url
 

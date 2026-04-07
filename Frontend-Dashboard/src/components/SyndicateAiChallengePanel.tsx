@@ -54,6 +54,32 @@ import { syndicateUserStorageKey as ls } from "@/lib/syndicateStorageKeys";
 
 const API_BASE = getSyndicateApiBase();
 
+/** Camera/mic need HTTPS (or localhost). */
+function isBrowserSecureForCamera(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    window.isSecureContext === true ||
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname === "[::1]"
+  );
+}
+
+/** Prefer a concrete codec so MediaRecorder works across Chrome / Edge / Safari. */
+function pickMediaRecorderMimeType(): string | undefined {
+  if (typeof MediaRecorder === "undefined" || typeof MediaRecorder.isTypeSupported !== "function") return undefined;
+  const candidates = [
+    "video/webm;codecs=vp9,opus",
+    "video/webm;codecs=vp8,opus",
+    "video/webm",
+    "video/mp4",
+  ];
+  for (const c of candidates) {
+    if (MediaRecorder.isTypeSupported(c)) return c;
+  }
+  return undefined;
+}
+
 export type { ChallengeRow } from "@/app/challenges/services/challengesApi";
 
 const CATEGORIES = ["business", "money", "fitness", "power", "grooming", "personal"] as const;
@@ -1489,6 +1515,8 @@ export function SyndicateAiChallengePanel() {
   /** Wall-clock ms when admin-task recording started (for on-screen duration). */
   const adminTaskRecordingStartMsRef = useRef<Record<number, number>>({});
   const adminTaskPreviewVideoRef = useRef<Record<number, HTMLVideoElement | null>>({});
+  /** Blocks double `getUserMedia` while the first call is still pending. */
+  const adminTaskCameraOpeningRef = useRef<Record<number, boolean>>({});
 
   const handleSyndicateLogout = useCallback(() => {
     void fetch(`${API_BASE}/auth/logout/`, {
@@ -2368,10 +2396,15 @@ export function SyndicateAiChallengePanel() {
   async function submitAdminTask(taskId: number) {
     const draft = (adminTaskDrafts[taskId] || "").trim();
     if (draft.length < 3) {
-      setAdminTaskMsg("Write at least a short response before submitting.");
+      setAdminTaskMsg("Write at least a short written response (3+ characters) before submitting — it is required together with any video or file.");
       return;
     }
-    setAdminTaskMsg(null);
+    const file = adminTaskFiles[taskId] ?? null;
+    setAdminTaskMsg(
+      file
+        ? "Submitting your written response and attachment for admin review…"
+        : "Submitting your written response for admin review…"
+    );
     setAdminTaskBusyId(taskId);
     try {
       const device = getDeviceId();
@@ -2380,7 +2413,7 @@ export function SyndicateAiChallengePanel() {
         taskId,
         responseText: draft,
         startedAtMs: adminTaskStartedAtMs[taskId],
-        attachment: adminTaskFiles[taskId] ?? null
+        attachment: file
       });
       const refreshed = await fetchAdminTasksActive(device);
       setAdminTasks(refreshed.results ?? []);
@@ -2401,7 +2434,11 @@ export function SyndicateAiChallengePanel() {
           /* keep UI stale until next progress fetch */
         }
       }
-      setAdminTaskMsg("Saved. We will give you points later after analysis.");
+      setAdminTaskMsg(
+        file
+          ? "Saved: your written response and video/file attachment were sent. Staff will review; you will get points after analysis."
+          : "Saved: your written response was sent. Staff will review; you will get points after analysis."
+      );
     } catch (e) {
       if (e instanceof SyndicateSessionLostError) return;
       setAdminTaskMsg(friendlyAdminTaskError(e));
@@ -2415,11 +2452,29 @@ export function SyndicateAiChallengePanel() {
       setAdminTaskMsg("Camera recording is not supported in this browser.");
       return;
     }
-    if (adminTaskRecording[taskId]) return;
-    setAdminTaskMsg(null);
+    if (typeof MediaRecorder === "undefined") {
+      setAdminTaskMsg("Video recording is not supported in this browser. Use Choose file to upload a video instead.");
+      return;
+    }
+    if (!isBrowserSecureForCamera()) {
+      setAdminTaskMsg("Camera needs a secure site (HTTPS). Open this page over HTTPS or use localhost, or upload a file instead.");
+      return;
+    }
+    if (adminTaskRecording[taskId] || adminTaskCameraOpeningRef.current[taskId]) return;
+    setAdminTaskMsg("Opening camera…");
+    adminTaskCameraOpeningRef.current[taskId] = true;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      const rec = new MediaRecorder(stream);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+        audio: true
+      });
+      const mimeType = pickMediaRecorderMimeType();
+      let rec: MediaRecorder;
+      try {
+        rec = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      } catch {
+        rec = new MediaRecorder(stream);
+      }
       adminTaskChunksRef.current[taskId] = [];
       rec.ondataavailable = (e: BlobEvent) => {
         if (e.data && e.data.size > 0) adminTaskChunksRef.current[taskId].push(e.data);
@@ -2431,11 +2486,21 @@ export function SyndicateAiChallengePanel() {
           preview.srcObject = null;
         }
         const chunks = adminTaskChunksRef.current[taskId] || [];
-        const blob = new Blob(chunks, { type: rec.mimeType || "video/webm" });
+        const outType = rec.mimeType || mimeType || "video/webm";
+        const blob = new Blob(chunks, { type: outType });
         if (blob.size > 0) {
-          const ext = rec.mimeType.includes("mp4") ? "mp4" : "webm";
-          const file = new File([blob], `admin-task-${taskId}-${Date.now()}.${ext}`, { type: blob.type || "video/webm" });
+          const ext = outType.includes("mp4") ? "mp4" : "webm";
+          const file = new File([blob], `admin-task-${taskId}-${Date.now()}.${ext}`, {
+            type: blob.type || outType
+          });
           setAdminTaskFiles((prev) => ({ ...prev, [taskId]: file }));
+          setAdminTaskMsg(
+            "Video saved and attached. Add your written response above if you have not yet, then submit — both are sent together for admin review."
+          );
+        } else {
+          setAdminTaskMsg(
+            "Recording had no data (try again, record a few seconds, or upload a file). Your written response can still be submitted without a video."
+          );
         }
         stream.getTracks().forEach((tr) => tr.stop());
         adminTaskRecorderRef.current[taskId] = null;
@@ -2445,11 +2510,48 @@ export function SyndicateAiChallengePanel() {
       adminTaskRecorderRef.current[taskId] = rec;
       adminTaskStreamRef.current[taskId] = stream;
       adminTaskRecordingStartMsRef.current[taskId] = Date.now();
-      rec.start();
+      try {
+        // Timeslice so browsers reliably emit chunks (avoids empty files on some builds).
+        rec.start(250);
+      } catch (e) {
+        stream.getTracks().forEach((tr) => tr.stop());
+        adminTaskRecorderRef.current[taskId] = null;
+        adminTaskStreamRef.current[taskId] = null;
+        setAdminTaskMsg(
+          e instanceof Error
+            ? `Could not start recording: ${e.message}`
+            : "Could not start recording. Try another browser or upload a file."
+        );
+        return;
+      }
       setAdminTaskRecording((prev) => ({ ...prev, [taskId]: true }));
       setAdminTaskMsg("Camera is on — you are recording. Use Stop recording when finished.");
-    } catch {
-      setAdminTaskMsg("Camera access was blocked or unavailable.");
+      requestAnimationFrame(() => {
+        const vid = adminTaskPreviewVideoRef.current[taskId];
+        const s = adminTaskStreamRef.current[taskId];
+        if (vid && s) {
+          vid.srcObject = s;
+          vid.muted = true;
+          void vid.play().catch(() => null);
+        }
+      });
+    } catch (e) {
+      const name = e && typeof e === "object" && "name" in e ? String((e as DOMException).name) : "";
+      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+        setAdminTaskMsg("Camera or microphone permission was denied. Allow access in the browser address bar, or upload a file instead.");
+      } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+        setAdminTaskMsg("No camera or microphone was found. Connect a device or upload a file instead.");
+      } else if (name === "NotReadableError") {
+        setAdminTaskMsg("Camera is in use by another app. Close it and try again, or upload a file.");
+      } else {
+        setAdminTaskMsg(
+          e instanceof Error
+            ? `Camera error: ${e.message}`
+            : "Camera access failed. Try HTTPS, allow permissions, or upload a file."
+        );
+      }
+    } finally {
+      adminTaskCameraOpeningRef.current[taskId] = false;
     }
   }
 
@@ -2457,8 +2559,12 @@ export function SyndicateAiChallengePanel() {
     const rec = adminTaskRecorderRef.current[taskId];
     if (!rec) return;
     try {
-      rec.state !== "inactive" && rec.stop();
-      setAdminTaskMsg("Video captured and attached.");
+      if (rec.state === "recording") {
+        rec.requestData();
+        rec.stop();
+      } else if (rec.state === "paused") {
+        rec.stop();
+      }
     } catch {
       setAdminTaskMsg("Could not stop recording.");
     }
@@ -3786,7 +3892,9 @@ export function SyndicateAiChallengePanel() {
                             <div className="space-y-4">
                               <div>
                                 <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-200/85">Your response</p>
-                                <p className="mt-1 text-[12px] text-white/55">Required text. Add file evidence below (upload or live camera recording, max 50MB).</p>
+                                <p className="mt-1 text-[12px] text-white/55">
+                                  <span className="text-emerald-200/90">Written response is required.</span> Your text and any video/file below are sent together in one submission for admin review (max 50MB attachment).
+                                </p>
                               </div>
                               <div>
                                 <label className="sr-only" htmlFor={`admin-task-response-${t.id}`}>
@@ -3803,7 +3911,7 @@ export function SyndicateAiChallengePanel() {
                               </div>
                               <div className="rounded-xl border border-white/12 bg-black/35 p-3">
                                 <label className="block text-[12px] font-semibold text-white/80" htmlFor={`admin-task-file-${t.id}`}>
-                                  Attachment <span className="font-normal text-white/45">(optional)</span>
+                                  Video or file <span className="font-normal text-white/45">(optional — pairs with your written response)</span>
                                 </label>
                                 <input
                                   id={`admin-task-file-${t.id}`}

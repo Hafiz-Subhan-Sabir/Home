@@ -316,42 +316,42 @@ const REWARD_MILESTONES = [
     unlock_points: 20,
     bonus_points: 5,
     title: "Bronze coin",
-    image: rewardsPublicAsset("Screenshot 2026-04-02 173802.png")
+    image: rewardsPublicAsset("bronze.jpeg")
   },
   {
     id: "rw-50",
     unlock_points: 50,
     bonus_points: 10,
     title: "Silver coin",
-    image: rewardsPublicAsset("Screenshot 2026-04-02 173814.png")
+    image: rewardsPublicAsset("silver.jpeg")
   },
   {
     id: "rw-100",
     unlock_points: 100,
     bonus_points: 20,
     title: "Gold coin",
-    image: rewardsPublicAsset("Screenshot 2026-04-02 173830.png")
+    image: rewardsPublicAsset("gold.png")
   },
   {
     id: "rw-150",
     unlock_points: 150,
     bonus_points: 30,
     title: "Blackcoin",
-    image: rewardsPublicAsset("Screenshot 2026-04-02 173840.png")
+    image: rewardsPublicAsset("black.jpeg")
   },
   {
     id: "rw-200",
     unlock_points: 200,
     bonus_points: 50,
     title: "Lamborghini",
-    image: rewardsPublicAsset("lambo.png")
+    image: rewardsPublicAsset("lambo.jpeg")
   },
   {
     id: "rw-350",
     unlock_points: 350,
     bonus_points: 100,
     title: "Private jet",
-    image: rewardsPublicAsset("jet.png")
+    image: rewardsPublicAsset("jet.jpeg")
   }
 ] as const;
 
@@ -3780,6 +3780,8 @@ export function SyndicateAiChallengePanel() {
                 const redeemed = redeemedRewards.has(rw.id);
                 const readyToRedeem = hasPoints && prevRedeemed && !redeemed;
                 const sequentialBlocked = !prevRedeemed && !redeemed;
+                const isBlackCoinReward = rw.id === "rw-150";
+                const isGoldToneReward = rw.id === "rw-100" || rw.id === "rw-200" || rw.id === "rw-350";
                 return (
                   <div
                     key={rw.id}
@@ -3794,11 +3796,28 @@ export function SyndicateAiChallengePanel() {
                     )}
                   >
                     <div className="flex flex-1 flex-col items-center">
-                      <div className="mx-auto mb-2 flex h-[56px] w-[56px] shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/12 bg-black/35 sm:mb-2.5 sm:h-[80px] sm:w-[80px]">
+                      <div
+                        className={cn(
+                          "relative mx-auto mb-2 flex aspect-square w-full max-w-[5.5rem] shrink-0 items-center justify-center overflow-hidden rounded-xl border p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] sm:mb-2.5 sm:max-w-[7.25rem] sm:p-2.5 md:max-w-[8rem]",
+                          isBlackCoinReward
+                            ? "border-white/45 ring-2 ring-white/35 bg-[radial-gradient(ellipse_at_50%_38%,rgba(255,255,255,0.88)_0%,rgba(220,215,205,0.65)_38%,rgba(90,85,80,0.75)_72%,rgba(28,26,24,0.98)_100%)]"
+                            : isGoldToneReward
+                              ? "border-amber-200/35 ring-1 ring-amber-300/25 bg-[radial-gradient(ellipse_at_50%_32%,rgba(255,230,160,0.45)_0%,rgba(200,150,60,0.42)_48%,rgba(25,18,8,0.94)_100%)]"
+                              : "border-white/25 ring-1 ring-white/15 bg-[radial-gradient(ellipse_at_50%_35%,rgba(255,255,255,0.22)_0%,rgba(60,55,45,0.55)_45%,rgba(10,8,6,0.92)_100%)]"
+                        )}
+                      >
                         <img
                           src={rw.image}
                           alt={rw.title}
-                          className="h-full w-full object-cover"
+                          className={cn(
+                            "h-full w-full max-h-[5rem] object-contain object-center sm:max-h-[6.5rem] md:max-h-[7.25rem]",
+                            isBlackCoinReward
+                              ? "drop-shadow-[0_6px_18px_rgba(0,0,0,0.65)] [filter:brightness(1.5)_contrast(1.12)]"
+                              : isGoldToneReward
+                                ? "drop-shadow-[0_4px_20px_rgba(255,200,90,0.45)] [filter:saturate(1.45)_brightness(1.18)_contrast(1.08)]"
+                                : "drop-shadow-[0_4px_14px_rgba(0,0,0,0.55)]"
+                          )}
+                          loading="lazy"
                           onError={(e) => {
                             (e.currentTarget as HTMLImageElement).style.display = "none";
                           }}

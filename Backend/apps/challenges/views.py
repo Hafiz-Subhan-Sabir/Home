@@ -685,13 +685,13 @@ def referral_redeem(request):
 def referral_status(request):
     """Inviter: check if a friend redeemed so you can claim streak restore."""
     device = _user_device_key(request)
-    now = timezone.now()
+    # Do not require expires_at >= now here: friend may have redeemed in time while the
+    # inviter claims later; the row is already redeemed and cannot be reused.
     r = (
         ReferralRestore.objects.filter(
             creator_device=device,
             redeemed=True,
             restore_claimed=False,
-            expires_at__gte=now,
         )
         .order_by("-created_at")
         .first()
@@ -703,22 +703,30 @@ def referral_status(request):
 def referral_claim(request):
     """Inviter: consume one pending restore after friend redeemed."""
     device = _user_device_key(request)
-    now = timezone.now()
     r = (
         ReferralRestore.objects.filter(
             creator_device=device,
             redeemed=True,
             restore_claimed=False,
-            expires_at__gte=now,
         )
         .order_by("-created_at")
         .first()
     )
     if not r:
         return Response({"detail": "Nothing to claim"}, status=status.HTTP_400_BAD_REQUEST)
+    obj, _ = SyndicateUserProgress.objects.get_or_create(
+        user=request.user,
+        defaults={"state": {}, "streak_count": 0, "last_activity_date": None},
+    )
+    cur = dict(obj.state or {})
+    raw_prev = cur.get("streak_before_break", "1")
+    try:
+        restore_streak_count = max(1, min(int(str(raw_prev)), 999))
+    except (TypeError, ValueError):
+        restore_streak_count = 1
     r.restore_claimed = True
     r.save()
-    return Response({"ok": True})
+    return Response({"ok": True, "restore_streak_count": restore_streak_count})
 
 
 @api_view(["GET"])

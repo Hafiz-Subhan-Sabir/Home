@@ -2424,13 +2424,20 @@ export function SyndicateAiChallengePanel() {
         body: JSON.stringify({ device_id: getDeviceId() })
       });
       ensureSyndicateSessionOrRedirect(r, !!tokenBefore);
-      const j = await r.json();
+      const j = (await r.json()) as {
+        detail?: string;
+        restore_streak_count?: unknown;
+      };
       if (!r.ok) {
         setReferralMsg(typeof j.detail === "string" ? j.detail : "Cannot claim");
         return;
       }
-      const prev = parseInt(window.localStorage.getItem(ls("streak_before_break")) || "1", 10);
-      const restored = await postSyndicateStreakRestore(Math.max(1, prev));
+      const fromServer = j.restore_streak_count;
+      const n =
+        typeof fromServer === "number" && Number.isFinite(fromServer)
+          ? fromServer
+          : parseInt(window.localStorage.getItem(ls("streak_before_break")) || "1", 10);
+      const restored = await postSyndicateStreakRestore(Math.max(1, Math.min(999, n)));
       applySyncedStateFromServer(restored.state ?? {});
       setMissionCompletionLog(loadMissionCompletionLog());
       window.localStorage.removeItem(ls("streak_before_break"));
@@ -3199,7 +3206,10 @@ export function SyndicateAiChallengePanel() {
               >
                 <div className="text-[15px] font-bold uppercase tracking-wide text-[#a8d8ff]">Restore streak (invite a friend)</div>
                 <p className="mt-2 text-[15px] leading-relaxed text-white/65">
-                  After a streak break (7-day window), share a code or redeem a friend&apos;s code.
+                  After a streak break (7-day window), generate a code and share it. Your friend signs up and taps{" "}
+                  <span className="text-white/85">Redeem</span> with that code. Then <span className="text-white/85">you</span>{" "}
+                  (same account) return here and press <span className="text-white/85">Claim streak restore</span> — the streak
+                  value comes from your server progress, not only this device.
                 </p>
                 {showRestore ? (
                   <p className="mt-2 text-[14px] font-semibold text-amber-200/95">

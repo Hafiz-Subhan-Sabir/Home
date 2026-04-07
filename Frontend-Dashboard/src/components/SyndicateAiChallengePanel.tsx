@@ -2442,11 +2442,26 @@ export function SyndicateAiChallengePanel() {
 
   async function submitAdminTask(taskId: number) {
     const draft = (adminTaskDrafts[taskId] || "").trim();
+    const file = adminTaskFiles[taskId] ?? null;
     if (draft.length < 3) {
-      setAdminTaskMsg("Write at least a short written response (3+ characters) before submitting — it is required together with any video or file.");
+      if (file) {
+        setAdminTaskMsg(
+          "Your video or file is attached. Please also write a short response in the text box above (at least 3 characters) — both are required — then press Submit again."
+        );
+      } else {
+        setAdminTaskMsg(
+          "Write a short written response in the text box above (at least 3 characters), then press Submit. You can add a video or file below if the task asks for it."
+        );
+      }
+      if (typeof document !== "undefined") {
+        const el = document.getElementById(`admin-task-response-${taskId}`);
+        if (el instanceof HTMLElement) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          window.setTimeout(() => el.focus(), 100);
+        }
+      }
       return;
     }
-    const file = adminTaskFiles[taskId] ?? null;
     setAdminTaskMsg(
       file
         ? "Submitting your written response and attachment for admin review…"
@@ -4074,7 +4089,7 @@ export function SyndicateAiChallengePanel() {
                               </div>
                               <button
                                 type="button"
-                                disabled={adminTaskBusyId === t.id || !(adminTaskDrafts[t.id] || "").trim()}
+                                disabled={adminTaskBusyId === t.id}
                                 onClick={() => void submitAdminTask(t.id)}
                                 className={cn(
                                   "w-full px-4 py-3 text-[14px] font-bold uppercase tracking-[0.08em]",

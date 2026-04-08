@@ -1318,7 +1318,8 @@ function DetailPane({
   onLogout,
   onDraftPersist,
   missionReminderIso = null,
-  onMissionReminderChange
+  onMissionReminderChange,
+  onMissionReminderDone
 }: {
   row: ChallengeRow;
   initialResponse: MissionResponseDraft;
@@ -1338,6 +1339,8 @@ function DetailPane({
   /** Optional reminder (local time picker); stored as ISO on the parent. */
   missionReminderIso?: string | null;
   onMissionReminderChange?: (iso: string | null) => void;
+  /** After user confirms date/time with Done: e.g. navigate to reminders list. */
+  onMissionReminderDone?: () => void;
 }) {
   const p = row.payload;
   const [how, setHow] = useState(initialResponse.how);
@@ -1381,6 +1384,22 @@ function DetailPane({
     }
     setReminderLocal(missionReminderIso ? toDatetimeLocalValue(new Date(missionReminderIso)) : "");
   }, [missionReminderIso, row.id, readOnlyCompleted, onMissionReminderChange]);
+
+  const handleMissionReminderDone = () => {
+    if (!onMissionReminderChange) return;
+    const v = reminderLocal.trim();
+    if (!v) {
+      if (missionReminderIso) {
+        onMissionReminderChange(null);
+        onMissionReminderDone?.();
+      }
+      return;
+    }
+    const parsed = new Date(v);
+    if (Number.isNaN(parsed.getTime())) return;
+    onMissionReminderChange(parsed.toISOString());
+    onMissionReminderDone?.();
+  };
 
   return (
     <div
@@ -1556,44 +1575,47 @@ function DetailPane({
                     Reminder date &amp; time (optional)
                   </label>
                   <p className="mb-2 text-[11px] leading-snug text-white/50 sm:text-[12px]">
-                    The Missions tab shows time left. When the countdown hits zero and this mission is still incomplete,{" "}
+                    Pick a date and time, then press <span className="font-semibold text-cyan-100/90">Done</span> to save the
+                    reminder. The Missions tab shows time left. When the countdown hits zero and this mission is still incomplete,{" "}
                     <span className="font-semibold text-amber-200/90">1 point is deducted</span> once from your total (per reminder).
                   </p>
                   <input
                     id="syndicate-mission-reminder"
                     type="datetime-local"
                     value={reminderLocal}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setReminderLocal(v);
-                      if (!v) {
-                        onMissionReminderChange(null);
-                        return;
-                      }
-                      const parsed = new Date(v);
-                      if (Number.isNaN(parsed.getTime())) {
-                        onMissionReminderChange(null);
-                        return;
-                      }
-                      onMissionReminderChange(parsed.toISOString());
-                    }}
+                    onChange={(e) => setReminderLocal(e.target.value)}
                     className={cn(
                       SYNDICATE_DATE_INPUT,
                       "mt-1 w-full max-w-[min(100%,22rem)] text-[15px] text-white [color-scheme:dark]"
                     )}
                   />
-                  {reminderLocal ? (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => {
-                        setReminderLocal("");
-                        onMissionReminderChange(null);
-                      }}
-                      className="mt-3 text-[12px] font-semibold uppercase tracking-wide text-cyan-200/80 underline-offset-4 hover:text-cyan-100 hover:underline"
+                      onClick={handleMissionReminderDone}
+                      disabled={
+                        !reminderLocal.trim() && !missionReminderIso
+                      }
+                      className={cn(
+                        "syndicate-readable min-h-[44px] touch-manipulation rounded-md border px-4 py-2 text-[13px] font-bold uppercase tracking-[0.08em] transition disabled:cursor-not-allowed disabled:opacity-40",
+                        "border-cyan-400/45 bg-cyan-500/15 text-cyan-50 hover:border-cyan-300/55 hover:bg-cyan-500/25"
+                      )}
                     >
-                      Clear reminder
+                      Done
                     </button>
-                  ) : null}
+                    {reminderLocal || missionReminderIso ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReminderLocal("");
+                          onMissionReminderChange(null);
+                        }}
+                        className="min-h-[44px] text-[12px] font-semibold uppercase tracking-wide text-cyan-200/80 underline-offset-4 hover:text-cyan-100 hover:underline"
+                      >
+                        Clear reminder
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               ) : null}
               <label className="mb-1.5 block text-[12px] font-semibold text-white/80" htmlFor="mission-learned">
@@ -3384,6 +3406,18 @@ export function SyndicateAiChallengePanel() {
           onDraftPersist={doneIds.has(selected.id) ? undefined : persistMissionDraft}
           missionReminderIso={missionReminders[selected.id]?.atIso ?? null}
           onMissionReminderChange={doneIds.has(selected.id) ? undefined : setMissionReminderForSelected}
+          onMissionReminderDone={
+            doneIds.has(selected.id)
+              ? undefined
+              : () => {
+                  setShowStatsProfile(false);
+                  setSyndicateView("reminders");
+                  setSelected(null);
+                  window.setTimeout(() => {
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }, 0);
+                }
+          }
         />
       </>
     );

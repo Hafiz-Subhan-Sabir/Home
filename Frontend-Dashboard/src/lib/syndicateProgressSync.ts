@@ -3,6 +3,7 @@
  * Bonus/admin tasks stay shared; everything else is per authenticated user.
  */
 import { patchSyndicateProgress } from "@/app/challenges/services/challengesApi";
+import { getSyndicateAuthToken } from "@/lib/syndicateAuth";
 import { syndicateUserStorageKey as ls } from "@/lib/syndicateStorageKeys";
 
 /** Mirrors Backend `SYNDICATE_ALLOWED_STATE_KEYS` and excludes per-browser `device_id`. */
@@ -99,6 +100,7 @@ function scheduleSyndicateProgressPush() {
   if (pushTimer != null) window.clearTimeout(pushTimer);
   pushTimer = window.setTimeout(() => {
     pushTimer = null;
+    if (!getSyndicateAuthToken()) return;
     void patchSyndicateProgress(collectSyncedState()).catch(() => {
       /* offline */
     });

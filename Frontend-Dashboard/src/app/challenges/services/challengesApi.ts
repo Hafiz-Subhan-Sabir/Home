@@ -76,6 +76,9 @@ function parseProgressJson(j: {
 }
 
 export async function fetchSyndicateProgress(): Promise<SyndicateProgressPayload> {
+  if (!getSyndicateAuthToken()) {
+    return { state: {}, streak_count: 0, last_activity_date: null };
+  }
   const r = await apiFetch(challengesApiUrl("me/progress/"), { cache: "no-store" });
   const j = (await r.json()) as { state?: Record<string, unknown>; streak_count?: unknown; last_activity_date?: unknown; detail?: string };
   if (!r.ok) throw new Error(typeof j.detail === "string" ? j.detail : "Failed to load progress");
@@ -83,6 +86,13 @@ export async function fetchSyndicateProgress(): Promise<SyndicateProgressPayload
 }
 
 export async function patchSyndicateProgress(state: Record<string, string>): Promise<SyndicateProgressPayload> {
+  if (!getSyndicateAuthToken()) {
+    return parseProgressJson({
+      state: { ...state },
+      streak_count: 0,
+      last_activity_date: null
+    });
+  }
   const r = await apiFetch(challengesApiUrl("me/progress/"), {
     method: "PATCH",
     headers: getSyndicateAuthHeaders(true),
@@ -94,6 +104,9 @@ export async function patchSyndicateProgress(state: Record<string, string>): Pro
 }
 
 export async function postSyndicateStreakRecord(activityDate?: string): Promise<{ ok: boolean; streak_count: number; last_activity_date: string }> {
+  if (!getSyndicateAuthToken()) {
+    throw new Error("Syndicate login required for streak sync");
+  }
   const body: Record<string, string> = {};
   if (activityDate) body.activity_date = activityDate;
   const r = await apiFetch(challengesApiUrl("me/streak_record/"), {
@@ -110,6 +123,9 @@ export async function postSyndicateStreakRecord(activityDate?: string): Promise<
 }
 
 export async function postSyndicateStreakRestore(streakCount: number): Promise<SyndicateProgressPayload> {
+  if (!getSyndicateAuthToken()) {
+    throw new Error("Syndicate login required for streak restore");
+  }
   const r = await apiFetch(challengesApiUrl("me/streak_restore/"), {
     method: "POST",
     headers: getSyndicateAuthHeaders(true),

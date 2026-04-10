@@ -9,6 +9,15 @@ class UploadedDocument(models.Model):
     content_hash = models.CharField(max_length=64, db_index=True)
     text_extracted = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    ingest_last_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Last time mindset ingest was attempted (background or admin action).",
+    )
+    ingest_last_error = models.TextField(
+        blank=True,
+        help_text="If ingest failed, the error message (empty when last attempt succeeded).",
+    )
 
     class Meta:
         ordering = ["-created_at"]

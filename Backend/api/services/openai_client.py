@@ -10,8 +10,15 @@ from django.conf import settings
 from openai import OpenAI
 
 
+def _normalize_api_key(raw: str) -> str:
+    key = (raw or "").strip().strip("\ufeff")
+    if len(key) >= 2 and key[0] == key[-1] and key[0] in "\"'":
+        key = key[1:-1].strip()
+    return key
+
+
 def _client() -> OpenAI:
-    key = (getattr(settings, "OPENAI_API_KEY", None) or "").strip().strip("\ufeff")
+    key = _normalize_api_key(getattr(settings, "OPENAI_API_KEY", None) or "")
     if not key:
         raise RuntimeError("OPENAI_API_KEY is not set in environment or .env")
     return OpenAI(api_key=key)
@@ -166,7 +173,8 @@ def extract_mindsets_from_document(document_text: str) -> dict[str, Any]:
         f"{document_text}\n"
         "--- DOCUMENT END ---"
     )
-    return chat_json(INGEST_SYSTEM, user)
+    # Large JSON payloads need a high ceiling; omitting max_tokens can truncate and break JSON.parse.
+    return chat_json(INGEST_SYSTEM, user, temperature=0.35, max_tokens=16_384)
 
 
 def _coerce_str_list(val: Any, *, max_items: int = 64) -> list[str]:

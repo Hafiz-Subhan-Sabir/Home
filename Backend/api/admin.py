@@ -92,9 +92,24 @@ class UploadedDocumentAddForm(forms.ModelForm):
 
 @admin.register(UploadedDocument)
 class UploadedDocumentAdmin(admin.ModelAdmin):
-    list_display = ["id", "original_name", "content_hash", "created_at", "ingested"]
+    list_display = [
+        "id",
+        "original_name",
+        "content_hash",
+        "created_at",
+        "ingested",
+        "ingest_last_at",
+        "ingest_error_short",
+    ]
     list_filter = ["created_at"]
     actions = ["ingest_mindsets_action"]
+
+    @admin.display(description="Last ingest error (preview)")
+    def ingest_error_short(self, obj: UploadedDocument) -> str:
+        e = (obj.ingest_last_error or "").strip()
+        if not e:
+            return "—"
+        return (e[:100] + "…") if len(e) > 100 else e
 
     def add_view(self, request, form_url="", extra_context=None):
         try:

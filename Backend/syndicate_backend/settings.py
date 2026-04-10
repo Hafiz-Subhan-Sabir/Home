@@ -16,10 +16,29 @@ from datetime import timedelta
 from pathlib import Path
 from urllib.parse import quote_plus
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values, load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _fill_empty_os_environ_from_dotenv(path: Path) -> None:
+    """
+    Copy variables from a .env file into os.environ only when the current value is empty.
+    Fixes Windows/shell cases where OPENAI_API_KEY exists but is "" so load_dotenv(..., override=False)
+    never applies the real key from Backend/.env.
+    """
+    if not path.is_file():
+        return
+    for key, val in dotenv_values(path, encoding="utf-8-sig").items():
+        if val is None:
+            continue
+        s = str(val).strip().strip("\ufeff")
+        if not s:
+            continue
+        if not (os.environ.get(key) or "").strip():
+            os.environ[key] = s
+
 
 # Load .env from project root (handles UTF-8 BOM; also try cwd for alternate shells).
 # override=False: real process env (e.g. Railway DATABASE_URL) must not be replaced by a stray .env.
@@ -29,6 +48,16 @@ for _env_path in (BASE_DIR / ".env", Path.cwd() / ".env"):
         break
 else:
     load_dotenv(encoding="utf-8-sig")
+
+# Always merge Backend/.env into empty keys (see _fill_empty_os_environ_from_dotenv).
+_fill_empty_os_environ_from_dotenv(BASE_DIR / ".env")
+
+
+def _strip_optional_quotes(val: str) -> str:
+    s = (val or "").strip().strip("\ufeff")
+    if len(s) >= 2 and s[0] == s[-1] and s[0] in "\"'":
+        return s[1:-1].strip()
+    return s
 
 
 # Quick-start development settings - unsuitable for production
@@ -53,8 +82,8 @@ if _railway_host and _railway_host not in _allowed:
 # In DEBUG, accept any Host (Next proxy, LAN IP, test client "testserver", etc.)
 ALLOWED_HOSTS = ["*"] if DEBUG else _allowed
 
-OPENAI_API_KEY = (os.environ.get("OPENAI_API_KEY") or "").strip().strip("\ufeff")
-OPENAI_MODEL = (os.environ.get("OPENAI_MODEL") or "gpt-4o-mini").strip()
+OPENAI_API_KEY = _strip_optional_quotes(os.environ.get("OPENAI_API_KEY") or "")
+OPENAI_MODEL = _strip_optional_quotes(os.environ.get("OPENAI_MODEL") or "gpt-4o-mini")
 
 USE_CLOUDINARY = bool(
     (os.environ.get("CLOUDINARY_URL") or "").strip()
@@ -424,3 +453,48 @@ if sys.version_info >= (3, 14):
         return duplicate
 
     _BaseContext.__copy__ = _base_context_copy
+
+# Quieter runserver: optional Syndicate progress/streak calls hit 401 without a token — Django would log
+# "Unauthorized: …" and a yellow 401 line for every poll. Skip those in DEBUG only.
+if DEBUG:
+    LOGGING = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "filters": {
+            "skip_http_401": {
+                "()": "syndicate_backend.logging_filters.SkipHttp401Filter",
+            },
+        },
+        "formatters": {
+            "django.server": {
+                "()": "django.utils.log.ServerFormatter",
+                "format": "[{server_time}] {message}",
+                "style": "{",
+            },
+        },
+        "handlers": {
+            "django_server_console": {
+                "level": "INFO",
+                "class": "logging.StreamHandler",
+                "formatter": "django.server",
+                "filters": ["skip_http_401"],
+            },
+            "django_request_console": {
+                "level": "WARNING",
+                "class": "logging.StreamHandler",
+                "filters": ["skip_http_401"],
+            },
+        },
+        "loggers": {
+            "django.request": {
+                "handlers": ["django_request_console"],
+                "level": "WARNING",
+                "propagate": False,
+            },
+            "django.server": {
+                "handlers": ["django_server_console"],
+                "level": "INFO",
+                "propagate": False,
+            },
+        },
+    }

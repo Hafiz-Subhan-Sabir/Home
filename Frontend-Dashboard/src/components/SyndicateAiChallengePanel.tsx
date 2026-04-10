@@ -497,6 +497,20 @@ type SyndicateHelpTopic =
   | "mega-mission"
   | "mission-reminder";
 
+export type SyndicateHelpOpenFn = (topic: SyndicateHelpTopic, anchorEl: HTMLElement) => void;
+
+type SyndicateHelpOpenState = { topic: SyndicateHelpTopic; anchorEl: HTMLElement };
+
+function syndicateHelpTitle(topic: SyndicateHelpTopic): string {
+  if (topic === "custom-mission") return "Create your mission";
+  if (topic === "hud-points") return "Points";
+  if (topic === "hud-streak") return "Streak";
+  if (topic === "points-to-pounds") return "Points to pounds";
+  if (topic === "unlock") return "Unlock & redeem rewards";
+  if (topic === "mission-reminder") return "Mission reminders";
+  return "Mega mission";
+}
+
 function SyndicateHelpMark({
   topic,
   label,
@@ -504,12 +518,12 @@ function SyndicateHelpMark({
 }: {
   topic: SyndicateHelpTopic;
   label: string;
-  onOpen: (t: SyndicateHelpTopic) => void;
+  onOpen: SyndicateHelpOpenFn;
 }) {
   return (
     <button
       type="button"
-      onClick={() => onOpen(topic)}
+      onClick={(e) => onOpen(topic, e.currentTarget)}
       aria-label={label}
       className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-red-400/60 bg-[radial-gradient(circle_at_35%_30%,rgba(254,202,202,0.22),rgba(60,10,14,0.96)_62%)] text-[10px] font-black leading-none text-red-50 shadow-[0_0_6px_rgba(248,113,113,0.4),inset_0_1px_0_rgba(254,226,226,0.2)] transition hover:scale-[1.05] hover:border-red-300/90 hover:text-white hover:shadow-[0_0_10px_rgba(248,113,113,0.55)] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/65 sm:h-5 sm:w-5 sm:text-[10px]"
     >
@@ -518,55 +532,9 @@ function SyndicateHelpMark({
   );
 }
 
-function SyndicateHelpOverlay({ topic, onClose }: { topic: SyndicateHelpTopic; onClose: () => void }) {
-  useEffect(() => {
-    const fn = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", fn);
-    return () => window.removeEventListener("keydown", fn);
-  }, [onClose]);
-
-  const title =
-    topic === "custom-mission"
-      ? "Create your mission"
-      : topic === "hud-points"
-        ? "Points"
-        : topic === "hud-streak"
-          ? "Streak"
-          : topic === "points-to-pounds"
-            ? "Points to pounds"
-            : topic === "unlock"
-              ? "Unlock & redeem rewards"
-              : topic === "mission-reminder"
-                ? "Mission reminders"
-                : "Mega mission";
-
+function SyndicateHelpContent({ topic }: { topic: SyndicateHelpTopic }) {
   return (
-    <div
-      className="fixed inset-0 z-[180] flex items-end justify-center bg-black/75 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-[2px] sm:items-center sm:p-6"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="syndicate-help-title"
-      onClick={onClose}
-    >
-      <div
-        className="syndicate-readable max-h-[min(80vh,32rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-[rgba(255,215,0,0.35)] bg-[linear-gradient(180deg,rgba(24,18,10,0.98),rgba(8,6,4,0.99))] p-5 shadow-[0_0_40px_rgba(0,0,0,0.55)] sm:p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <h2 id="syndicate-help-title" className="text-left text-[18px] font-black uppercase tracking-[0.08em] text-[color:var(--gold)] sm:text-[20px]">
-            {title}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="shrink-0 rounded-md border border-white/25 px-2.5 py-1 text-[12px] font-bold uppercase tracking-wider text-white/80 transition hover:bg-white/10"
-          >
-            Close
-          </button>
-        </div>
-        <div className="mt-4 space-y-3 text-left text-[15px] leading-relaxed text-white/88">
+    <div className="mt-4 space-y-3 text-left text-[15px] leading-relaxed text-white/88">
           {topic === "custom-mission" ? (
             <>
               <p>
@@ -643,9 +611,112 @@ function SyndicateHelpOverlay({ topic, onClose }: { topic: SyndicateHelpTopic; o
               <p>After approval, use <strong className="text-white">Claim reviewed points</strong> on that task to receive the payout—this pipeline is separate from your daily syndicate missions.</p>
             </>
           )}
-        </div>
-      </div>
     </div>
+  );
+}
+
+function SyndicateHelpAnchoredPopover({
+  topic,
+  anchorEl,
+  onClose
+}: {
+  topic: SyndicateHelpTopic;
+  anchorEl: HTMLElement;
+  onClose: () => void;
+}) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 560, maxHeight: 360 });
+
+  const updatePosition = useCallback(() => {
+    const el = anchorEl;
+    if (!el.isConnected) {
+      onCloseRef.current();
+      return;
+    }
+    const r = el.getBoundingClientRect();
+    const vw = typeof window !== "undefined" ? window.innerWidth : 400;
+    const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+    const margin = 8;
+    const gap = 10;
+    const popoverWidth = Math.min(720, Math.max(280, vw - 2 * margin));
+    let left = r.left + r.width / 2 - popoverWidth / 2;
+    left = Math.max(margin, Math.min(left, vw - popoverWidth - margin));
+
+    const maxContent = Math.min(400, Math.floor(vh * 0.72));
+    let top = r.bottom + gap;
+    let maxHeight = Math.max(160, Math.min(maxContent, vh - top - margin));
+
+    if (maxHeight < 180 && r.top > margin + gap) {
+      const aboveH = Math.min(maxContent, r.top - margin - gap);
+      if (aboveH >= 160) {
+        top = Math.max(margin, r.top - gap - aboveH);
+        maxHeight = aboveH;
+      }
+    }
+
+    if (top + maxHeight > vh - margin) {
+      maxHeight = Math.max(160, vh - margin - top);
+    }
+
+    setPos({ top, left, width: popoverWidth, maxHeight });
+  }, [anchorEl]);
+
+  useLayoutEffect(() => {
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [updatePosition]);
+
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCloseRef.current();
+    };
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, []);
+
+  if (typeof document === "undefined") return null;
+
+  const title = syndicateHelpTitle(topic);
+
+  return createPortal(
+    <>
+      <div className="fixed inset-0 z-[179] bg-black/40 backdrop-blur-[1px]" onClick={onClose} aria-hidden />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="syndicate-help-title"
+        className="syndicate-readable fixed z-[180] overflow-x-hidden overflow-y-auto rounded-2xl border border-[rgba(255,215,0,0.35)] bg-[linear-gradient(180deg,rgba(24,18,10,0.98),rgba(8,6,4,0.99))] p-5 shadow-[0_12px_48px_rgba(0,0,0,0.65)] sm:p-6"
+        style={{
+          top: pos.top,
+          left: pos.left,
+          width: pos.width,
+          maxHeight: pos.maxHeight
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <h2 id="syndicate-help-title" className="text-left text-[18px] font-black uppercase tracking-[0.08em] text-[color:var(--gold)] sm:text-[20px]">
+            {title}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-md border border-white/25 px-2.5 py-1 text-[12px] font-bold uppercase tracking-wider text-white/80 transition hover:bg-white/10"
+          >
+            Close
+          </button>
+        </div>
+        <SyndicateHelpContent topic={topic} />
+      </div>
+    </>,
+    document.body
   );
 }
 
@@ -738,11 +809,28 @@ function persistMissionReminders(m: Record<number, MissionReminderEntry>) {
   onSyndicatePersist();
 }
 
+/** UUID v4 without relying on `crypto.randomUUID` (missing on some browsers / non-secure HTTP origins). */
+function randomUuidV4(): string {
+  const c = typeof globalThis !== "undefined" ? globalThis.crypto : undefined;
+  if (c && typeof c.randomUUID === "function") {
+    return c.randomUUID();
+  }
+  if (c && typeof c.getRandomValues === "function") {
+    const bytes = new Uint8Array(16);
+    c.getRandomValues(bytes);
+    bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+    bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+  return `dev-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
 function getDeviceId(): string {
   if (typeof window === "undefined") return "server";
   let id = window.localStorage.getItem(ls("device_id"));
   if (!id) {
-    id = crypto.randomUUID();
+    id = randomUuidV4();
     window.localStorage.setItem(ls("device_id"), id);
   }
   return id;
@@ -1427,8 +1515,8 @@ function DetailPane({
   onMissionReminderChange?: (iso: string | null) => void;
   /** After user confirms date/time with Done: e.g. navigate to reminders list. */
   onMissionReminderDone?: () => void;
-  /** Opens syndicate help overlay (e.g. mission reminder explainer). */
-  onSyndicateHelpOpen?: (topic: SyndicateHelpTopic) => void;
+  /** Opens syndicate help popover anchored to the ? control (e.g. mission reminder explainer). */
+  onSyndicateHelpOpen?: SyndicateHelpOpenFn;
 }) {
   const p = row.payload;
   const [how, setHow] = useState(initialResponse.how);
@@ -1895,7 +1983,10 @@ export function SyndicateAiChallengePanel() {
     elapsedSeconds: number;
   } | null>(null);
   const [redeemedRewards, setRedeemedRewards] = useState<Set<string>>(() => new Set());
-  const [syndicateHelpPanel, setSyndicateHelpPanel] = useState<SyndicateHelpTopic | null>(null);
+  const [syndicateHelpPanel, setSyndicateHelpPanel] = useState<SyndicateHelpOpenState | null>(null);
+  const openSyndicateHelp = useCallback<SyndicateHelpOpenFn>((topic, anchorEl) => {
+    setSyndicateHelpPanel({ topic, anchorEl });
+  }, []);
   const [adminTasks, setAdminTasks] = useState<AdminTaskRow[]>([]);
   const [adminTaskDrafts, setAdminTaskDrafts] = useState<Record<number, string>>({});
   /** Latest drafts for MediaRecorder onstop (closure-safe). */
@@ -3456,7 +3547,7 @@ export function SyndicateAiChallengePanel() {
                 <SyndicateHelpMark
                   topic="points-to-pounds"
                   label="How points to pounds and course unlocks work"
-                  onOpen={setSyndicateHelpPanel}
+                  onOpen={openSyndicateHelp}
                 />
               </h3>
               <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-white/62 sm:text-[14px]">
@@ -3554,7 +3645,11 @@ export function SyndicateAiChallengePanel() {
 
   const syndicateHelpModal =
     syndicateHelpPanel !== null ? (
-      <SyndicateHelpOverlay topic={syndicateHelpPanel} onClose={() => setSyndicateHelpPanel(null)} />
+      <SyndicateHelpAnchoredPopover
+        topic={syndicateHelpPanel.topic}
+        anchorEl={syndicateHelpPanel.anchorEl}
+        onClose={() => setSyndicateHelpPanel(null)}
+      />
     ) : null;
 
   const adminTaskRecordingPortal =
@@ -3656,7 +3751,7 @@ export function SyndicateAiChallengePanel() {
                   }, 0);
                 }
           }
-          onSyndicateHelpOpen={setSyndicateHelpPanel}
+          onSyndicateHelpOpen={openSyndicateHelp}
         />
       </>
     );
@@ -4308,7 +4403,7 @@ export function SyndicateAiChallengePanel() {
                 <div className="flex min-h-[150px] flex-col border border-amber-300/75 bg-[linear-gradient(135deg,rgba(251,191,36,0.38),rgba(245,158,11,0.3)_45%,rgba(66,32,2,0.92)_100%)] px-3 py-3 text-center [clip-path:polygon(8%_0,100%_0,92%_100%,0_100%)] [box-shadow:0_0_16px_rgba(245,158,11,0.32),inset_0_1px_0_rgba(255,237,170,0.45)] min-[420px]:min-h-[182px]">
                   <div className="flex items-center justify-center gap-2">
                     <div className={cn(HUD_LABEL, "text-amber-100/85")}>Points</div>
-                    <SyndicateHelpMark topic="hud-points" label="How points work" onOpen={setSyndicateHelpPanel} />
+                    <SyndicateHelpMark topic="hud-points" label="How points work" onOpen={openSyndicateHelp} />
                   </div>
                   <div className="mt-1 text-[22px] font-black tabular-nums text-amber-50 sm:text-[24px]">{pointsTotal}</div>
                   <div className="mt-2 text-[10px] font-bold uppercase tracking-[0.08em] text-amber-200/85 sm:text-[11px]">Total earned</div>
@@ -4322,7 +4417,7 @@ export function SyndicateAiChallengePanel() {
                 <div className="flex min-h-[150px] flex-col border border-fuchsia-300/70 bg-[linear-gradient(135deg,rgba(244,114,182,0.36),rgba(168,85,247,0.28)_45%,rgba(48,11,62,0.9)_100%)] px-3 py-3 text-center [clip-path:polygon(8%_0,100%_0,92%_100%,0_100%)] [box-shadow:0_0_16px_rgba(217,70,239,0.28),inset_0_1px_0_rgba(245,208,254,0.4)] min-[420px]:min-h-[182px]">
                   <div className="flex items-center justify-center gap-2">
                     <div className={cn(HUD_LABEL, "text-fuchsia-100/85")}>Streak 🔥</div>
-                    <SyndicateHelpMark topic="hud-streak" label="How streak works" onOpen={setSyndicateHelpPanel} />
+                    <SyndicateHelpMark topic="hud-streak" label="How streak works" onOpen={openSyndicateHelp} />
                   </div>
                   <div className="mt-1 text-[20px] font-black text-fuchsia-100">
                     🔥 {streak} {streak === 1 ? "day" : "days"}
@@ -4426,7 +4521,7 @@ export function SyndicateAiChallengePanel() {
                     <SyndicateHelpMark
                       topic="mission-reminder"
                       label="How mission reminders work and how points can change"
-                      onOpen={setSyndicateHelpPanel}
+                      onOpen={openSyndicateHelp}
                     />
                   </div>
                   <ul className="space-y-3">
@@ -4569,7 +4664,7 @@ export function SyndicateAiChallengePanel() {
             <div className="text-center">
               <h3 className="flex flex-wrap items-center justify-center gap-2 text-[20px] font-black uppercase tracking-[0.14em] text-[color:var(--gold)] sm:text-[24px]">
                 <span>Unlock & redeem rewards</span>
-                <SyndicateHelpMark topic="unlock" label="How unlock and redeem rewards work" onOpen={setSyndicateHelpPanel} />
+                <SyndicateHelpMark topic="unlock" label="How unlock and redeem rewards work" onOpen={openSyndicateHelp} />
               </h3>
               <p className="mt-1 text-[14px] font-semibold text-white/70 sm:text-[15px]">
                 Redeem in order: Level 1, then 2, then 3… Meet each points threshold and redeem before the next tier opens.
@@ -4688,7 +4783,7 @@ export function SyndicateAiChallengePanel() {
             <header className="w-full px-1 text-center sm:px-2">
               <h2 className="flex flex-wrap items-center justify-center gap-3 font-black uppercase leading-[1.02] tracking-[0.1em] text-[color:var(--gold)] [text-shadow:0_0_28px_rgba(255,215,0,0.45),0_0_64px_rgba(34,211,238,0.12)] text-[clamp(2rem,9vw,4rem)] sm:tracking-[0.14em] md:text-[clamp(2.5rem,6vw,4.25rem)]">
                 <span>Mega mission</span>
-                <SyndicateHelpMark topic="mega-mission" label="How mega missions work" onOpen={setSyndicateHelpPanel} />
+                <SyndicateHelpMark topic="mega-mission" label="How mega missions work" onOpen={openSyndicateHelp} />
               </h2>
               <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200/70 sm:mt-3 sm:text-xs sm:tracking-[0.28em]">
                 Bonus track · admin-reviewed payouts
@@ -4967,7 +5062,7 @@ export function SyndicateAiChallengePanel() {
           <div className="syndicate-readable mt-3 w-full min-w-0 border-t border-[rgba(120,200,255,0.45)] px-2 py-3 sm:px-3 sm:py-4">
             <div className="flex flex-wrap items-center gap-2">
               <div className="text-[18px] font-black uppercase tracking-[0.1em] text-[#a8d8ff] sm:text-[20px]">Create your mission</div>
-              <SyndicateHelpMark topic="custom-mission" label="How creating your own mission works" onOpen={setSyndicateHelpPanel} />
+              <SyndicateHelpMark topic="custom-mission" label="How creating your own mission works" onOpen={openSyndicateHelp} />
             </div>
             <p className="mt-2 w-full min-w-0 text-[15px] leading-relaxed text-white/80 sm:text-[16px]">
               Up to <strong className="text-white/80">two</strong> per day. You set the title and difficulty; the server fills in{" "}

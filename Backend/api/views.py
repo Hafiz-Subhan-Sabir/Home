@@ -27,6 +27,16 @@ from .services.storage_urls import document_presigned_download_url
 from .services.upload_store import SUPPORTED_SUFFIXES, store_uploaded_file
 
 
+def _record_ingest_attempt(doc: UploadedDocument, *, success: bool, error: str | None = None) -> None:
+    """Persist last ingest outcome so Django admin can show failures without reading server logs."""
+    now = timezone.now()
+    err_text = "" if success else (error or "Unknown error").strip()[:8000]
+    UploadedDocument.objects.filter(pk=doc.pk).update(
+        ingest_last_at=now,
+        ingest_last_error=err_text,
+    )
+
+
 def _data_path(rel: str) -> Path:
     return Path(settings.SYNDICATE_DATA_DIR) / rel.replace("\\", "/")
 
@@ -68,10 +78,12 @@ def run_ingest(doc: UploadedDocument) -> tuple[bool, dict | None, str | None]:
                 suf = ".pdf"
             raw = extract_text_from_bytes(blob, suf)
         else:
-            return False, None, (
+            msg = (
                 "No document text in database and source file is missing "
                 "(not on disk or object storage)."
             )
+            _record_ingest_attempt(doc, success=False, error=msg)
+            return False, None, msg
         doc.text_extracted = raw
         doc.save(update_fields=["text_extracted"])
 
@@ -79,9 +91,13 @@ def run_ingest(doc: UploadedDocument) -> tuple[bool, dict | None, str | None]:
     try:
         payload = normalize_mindset_ingest_payload(extract_mindsets_from_document(text))
     except RuntimeError as e:
-        return False, None, str(e)
+        err = str(e)
+        _record_ingest_attempt(doc, success=False, error=err)
+        return False, None, err
     except Exception as e:
-        return False, None, str(e)
+        err = str(e)
+        _record_ingest_attempt(doc, success=False, error=err)
+        return False, None, err
 
     mind, _created = MindsetKnowledge.objects.update_or_create(
         source=doc,
@@ -90,6 +106,7 @@ def run_ingest(doc: UploadedDocument) -> tuple[bool, dict | None, str | None]:
             "model_used": getattr(settings, "OPENAI_MODEL", "gpt-4o-mini"),
         },
     )
+    _record_ingest_attempt(doc, success=True)
     return True, {
         "mindset_id": mind.id,
         "document_id": doc.id,

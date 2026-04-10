@@ -12,7 +12,8 @@ from django.db.utils import OperationalError
 from django.utils import timezone
 from django.db import transaction
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from api.models import MindsetKnowledge
@@ -52,7 +53,11 @@ from .services import (
 )
 
 def _user_device_key(request) -> str:
-    return f"user:{request.user.id}"
+    """Per-account device id when logged in; empty when anonymous (shared legacy daily batch path)."""
+    user = getattr(request, "user", None)
+    if user is not None and getattr(user, "is_authenticated", False):
+        return f"user:{user.pk}"
+    return ""
 
 
 def _prune_old_challenge_rows() -> None:
@@ -103,6 +108,7 @@ SYNDICATE_ALLOWED_STATE_KEYS = frozenset(
 
 
 @api_view(["GET", "PATCH"])
+@permission_classes([IsAuthenticated])
 def syndicate_progress(request):
     """GET/PATCH user progress with DB-backed streak, points_total, and level."""
     if request.method == "GET":
@@ -165,6 +171,7 @@ def syndicate_progress(request):
 
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def syndicate_streak_record(request):
     """
     Call once when the user completes their first mission of a calendar day.
@@ -212,6 +219,7 @@ def syndicate_streak_record(request):
 
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def syndicate_streak_restore(request):
     """After referral streak restore: set streak on the server and clear break hints in JSON state."""
     try:
@@ -701,6 +709,7 @@ def referral_status(request):
 
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def referral_claim(request):
     """Inviter: consume one pending restore after friend redeemed."""
     device = _user_device_key(request)

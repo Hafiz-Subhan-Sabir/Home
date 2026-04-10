@@ -3,6 +3,13 @@
 .env.local
 **/.env
 !**/.env.example
+# Explicit paths (some Git versions match **/.env inconsistently on Windows)
+Frontend-Dashboard/.env
+frontend/.env
+Backend/.env
+backend/.env
+Frontend-Dashboard/.next/
+frontend/.next/
 LOCAL_DEV_CREDENTIALS.txt
 *CREDENTIALS*.txt
 
@@ -19,14 +26,18 @@ node_modules/
 out/
 *.tsbuildinfo
 
-# Large local uploads (keep folder via Backend .gitignore + .gitkeep)
+# Large local uploads (keep folder via backend .gitignore + .gitkeep)
+backend/data/uploads/*
+!backend/data/uploads/.gitkeep
 Backend/data/uploads/*
 !Backend/data/uploads/.gitkeep
 
 # Django user uploads (admin attachments, etc.)
+backend/media/
 Backend/media/
 
 # Collected static (build output; do not commit)
+backend/staticfiles/
 Backend/staticfiles/
 
 # IDE / OS

@@ -26,7 +26,7 @@ def _fill_empty_os_environ_from_dotenv(path: Path) -> None:
     """
     Copy variables from a .env file into os.environ only when the current value is empty.
     Fixes Windows/shell cases where OPENAI_API_KEY exists but is "" so load_dotenv(..., override=False)
-    never applies the real key from Backend/.env.
+    never applies the real key from backend/.env.
     """
     if not path.is_file():
         return
@@ -49,7 +49,7 @@ for _env_path in (BASE_DIR / ".env", Path.cwd() / ".env"):
 else:
     load_dotenv(encoding="utf-8-sig")
 
-# Always merge Backend/.env into empty keys (see _fill_empty_os_environ_from_dotenv).
+# Always merge backend/.env into empty keys (see _fill_empty_os_environ_from_dotenv).
 _fill_empty_os_environ_from_dotenv(BASE_DIR / ".env")
 
 
@@ -183,6 +183,7 @@ INSTALLED_APPS.extend(
         'apps.challenges.apps.ChallengesConfig',
         'apps.portal.apps.PortalConfig',
         'apps.membership.apps.MembershipConfig',
+        'apps.affiliate_tracking.apps.AffiliateTrackingConfig',
     ]
 )
 
@@ -433,6 +434,19 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": False,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
+
+# Affiliate portal (OTP + tracking) — same env keys as legacy affiliate-portal/backend-django
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "no-reply@syndicate.local")
+EMAIL_BACKEND = os.environ.get(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend",
+)
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true").lower() in ("1", "true", "yes")
+OTP_EXPIRES_MINUTES = int(os.environ.get("OTP_EXPIRES_MINUTES", "10"))
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

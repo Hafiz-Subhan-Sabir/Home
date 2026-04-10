@@ -84,7 +84,7 @@ def _normalize_streak_on_read(obj: SyndicateUserProgress, today) -> None:
 USER_LEADERBOARD_ID_RE = re.compile(r"^user:(\d+)$")
 
 
-# Keys mirrored in Frontend-Dashboard `syndicateProgressSync.ts` (excludes per-browser `device_id`).
+# Keys mirrored in frontend `syndicateProgressSync.ts` (excludes per-browser `device_id`).
 SYNDICATE_ALLOWED_STATE_KEYS = frozenset(
     {
         "points_history_v1",

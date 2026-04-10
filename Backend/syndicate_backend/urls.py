@@ -35,6 +35,8 @@ def api_root(_request):
             "service": "syndicate-backend",
             "health": "/api/health/",
             "admin": "/admin/",
+            "affiliate_track": "/api/track/health",
+            "affiliate_auth": "/api/affiliate/auth/request-otp",
         }
     )
 
@@ -52,6 +54,8 @@ urlpatterns = [
     path("api/auth/logout", portal_views.LogoutView.as_view(), name="auth-logout-noslash"),
     path("api/portal/", include("apps.portal.urls")),
     path("api/challenges/", include("apps.challenges.urls")),
+    path("api/track/", include("apps.affiliate_tracking.urls_track")),
+    path("api/affiliate/auth/", include("apps.affiliate_tracking.urls_auth")),
     path("api/", include("api.urls")),
 ]
 

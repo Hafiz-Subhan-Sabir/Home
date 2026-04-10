@@ -12,6 +12,7 @@ import { useGoalsPanel } from "@/contexts/GoalsPanelContext";
 import { GoalsPanel } from "@/components/ui/GoalsPanel";
 import { SyndicateAiChallengePanel } from "../components/SyndicateAiChallengePanel";
 import { MembershipContentHub } from "../components/membership/MembershipContentHub";
+import { AffiliatePortalSection } from "@/components/affiliate/AffiliatePortalSection";
 import { Toaster } from "react-hot-toast";
 
 type NavItem = { label: string; key: string; active?: boolean };
@@ -523,17 +524,6 @@ function SyndicateModeSection() {
         <div className="relative">
           <SyndicateAiChallengePanel />
         </div>
-      </div>
-    </section>
-  );
-}
-
-function AffiliatePortalSection() {
-  return (
-    <section data-anim="in" className="mt-2 w-full">
-      <div className="cut-frame-sm border border-white/15 bg-black/35 p-6 text-center">
-        <div className="text-[14px] font-extrabold uppercase tracking-[0.18em] text-white/80">Affiliate Portal</div>
-        <div className="mt-2 text-[12px] text-white/62">Section intentionally cleared for merge with another branch.</div>
       </div>
     </section>
   );

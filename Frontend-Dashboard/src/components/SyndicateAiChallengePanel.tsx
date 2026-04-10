@@ -856,7 +856,7 @@ function loadTotalPoints(): number {
 /** In-memory / localStorage shape for mission draft (two required fields before submit). */
 type MissionResponseDraft = { how: string; learned: string };
 
-/** Must match ``resolve_mission_response_text`` in ``Backend/apps/challenges/services.py``. */
+/** Must match ``resolve_mission_response_text`` in ``backend/apps/challenges/services.py``. */
 const COMBINED_HOW_PREFIX = "How I completed this mission:\n";
 const COMBINED_LEARNED_MARKER = "\n\nWhat I learned from it:\n";
 
@@ -2777,7 +2777,7 @@ export function SyndicateAiChallengePanel() {
         setError(
           typeof td.detail === "string" && td.detail
             ? td.detail
-            : "Mindsets are not loaded on the server yet. Add documents under Backend/data/uploads/ and ingest, or use the admin upload API."
+            : "Mindsets are not loaded on the server yet. Add documents under backend/data/uploads/ and ingest, or use the admin upload API."
         );
       }
     } catch (e) {
@@ -2785,7 +2785,7 @@ export function SyndicateAiChallengePanel() {
         return;
       }
       setError(
-        e instanceof Error ? e.message : "Cannot reach the API. Run: python manage.py runserver (in Backend/)"
+        e instanceof Error ? e.message : "Cannot reach the API. Run: python manage.py runserver (in backend/)"
       );
       setRows([]);
       setDailyBatchStreaming(false);

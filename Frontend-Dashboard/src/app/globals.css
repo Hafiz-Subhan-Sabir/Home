@@ -867,6 +867,149 @@ select {
   border: 2px solid rgba(255, 215, 0, 0.5);
 }
 
+/* --- Merged affiliate portal (standalone app utilities) --- */
+.font-thryon {
+  font-family: var(--font-heading);
+}
+.text-gold {
+  color: #e2c46a;
+}
+.badge-live {
+  border: 1px solid color-mix(in srgb, #00ff7a 56%, transparent);
+  background: color-mix(in srgb, #00ff7a 14%, transparent);
+  color: rgba(180, 255, 216, 0.95);
+  box-shadow: 0 0 14px rgba(0, 255, 122, 0.14);
+}
+.badge-danger {
+  border: 1px solid color-mix(in srgb, #ff3b3b 60%, transparent);
+  background: color-mix(in srgb, #ff3b3b 14%, transparent);
+  color: rgba(255, 205, 205, 0.95);
+}
+.badge-warn {
+  border: 1px solid color-mix(in srgb, #d4af37 68%, transparent);
+  background: color-mix(in srgb, #d4af37 18%, transparent);
+  color: #ffe9a5;
+  box-shadow: 0 0 14px rgba(212, 175, 55, 0.16);
+}
+.btn-gold {
+  border: 1px solid rgba(212, 175, 55, 0.78);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(212, 175, 55, 0.12) 45%, rgba(0, 0, 0, 0.32) 100%);
+  color: #fff6ce;
+  text-shadow: 0 0 8px rgba(212, 175, 55, 0.4);
+}
+.btn-cyan {
+  border: 1px solid rgba(0, 191, 255, 0.68);
+  background: linear-gradient(135deg, rgba(0, 191, 255, 0.24), rgba(0, 255, 255, 0.1) 45%, rgba(0, 0, 0, 0.28) 100%);
+  color: #c8f3ff;
+  text-shadow: 0 0 8px rgba(0, 191, 255, 0.28);
+}
+.btn-green {
+  border: 1px solid color-mix(in srgb, #00ff7a 66%, transparent);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, #00ff7a 28%, transparent),
+    rgba(0, 255, 173, 0.08) 45%,
+    rgba(0, 0, 0, 0.28) 100%
+  );
+  color: #c8ffe0;
+  text-shadow: 0 0 8px rgba(0, 255, 122, 0.28);
+}
+.focus-ring-gold:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.22), 0 0 0 1px rgba(255, 215, 0, 0.55) inset;
+}
+@keyframes affiliate-cta-breathe-gold {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.35), 0 0 10px rgba(255, 215, 0, 0.18), 0 0 0 rgba(255, 215, 0, 0);
+    transform: translateZ(0) scale(1);
+    filter: brightness(1) contrast(1.02);
+  }
+  55% {
+    box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.75), 0 0 18px rgba(255, 215, 0, 0.4), 0 0 34px rgba(255, 215, 0, 0.16);
+    transform: translateZ(0) scale(1.02);
+    filter: brightness(1.12) contrast(1.08);
+  }
+}
+@keyframes affiliate-cta-breathe-cyan {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgba(0, 191, 255, 0.28), 0 0 10px rgba(0, 191, 255, 0.12);
+    transform: translateZ(0) scale(1);
+    filter: brightness(1) contrast(1.02);
+  }
+  55% {
+    box-shadow: 0 0 0 1px rgba(0, 191, 255, 0.62), 0 0 18px rgba(0, 191, 255, 0.28), 0 0 34px rgba(0, 191, 255, 0.12);
+    transform: translateZ(0) scale(1.02);
+    filter: brightness(1.1) contrast(1.06);
+  }
+}
+@keyframes affiliate-cta-breathe-green {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgba(0, 255, 122, 0.25), 0 0 10px rgba(0, 255, 122, 0.12);
+    transform: translateZ(0) scale(1);
+    filter: brightness(1) contrast(1.02);
+  }
+  55% {
+    box-shadow: 0 0 0 1px rgba(0, 255, 122, 0.6), 0 0 18px rgba(0, 255, 122, 0.28), 0 0 34px rgba(0, 255, 122, 0.12);
+    transform: translateZ(0) scale(1.02);
+    filter: brightness(1.12) contrast(1.06);
+  }
+}
+.cta-glow-gold {
+  animation: affiliate-cta-breathe-gold 1.35s ease-in-out infinite;
+}
+.cta-glow-cyan {
+  animation: affiliate-cta-breathe-cyan 1.55s ease-in-out infinite;
+}
+.cta-glow-green {
+  animation: affiliate-cta-breathe-green 1.45s ease-in-out infinite;
+}
+.cta-program {
+  backdrop-filter: saturate(1.2);
+}
+.cta-program-gold {
+  border-color: rgba(255, 215, 0, 0.58) !important;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.14), rgba(0, 0, 0, 0.28) 70%) !important;
+  color: #ffe69f !important;
+}
+.cta-program-cyan {
+  border-color: rgba(0, 191, 255, 0.52) !important;
+  background: linear-gradient(135deg, rgba(0, 191, 255, 0.14), rgba(0, 0, 0, 0.28) 70%) !important;
+  color: #bfefff !important;
+}
+.cta-program-green {
+  border-color: rgba(0, 255, 122, 0.5) !important;
+  background: linear-gradient(135deg, rgba(0, 255, 122, 0.14), rgba(0, 0, 0, 0.28) 70%) !important;
+  color: #b9ffd7 !important;
+}
+.cta-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.cta-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.7;
+  transform: translateX(-120%);
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0), rgba(255, 215, 0, 0.22), rgba(255, 215, 0, 0));
+  animation: affiliate-cta-sweep 1.8s ease-in-out infinite;
+}
+@keyframes affiliate-cta-sweep {
+  0% {
+    transform: translateX(-120%);
+  }
+  55% {
+    transform: translateX(120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+
 /* Opportunity path cards — sun wash + sweep (aligned with ledger gold deck vibe) */
 @keyframes sun-glow-breathe {
   0%,

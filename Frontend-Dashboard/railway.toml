@@ -1,4 +1,4 @@
-# Root directory: Frontend-Dashboard. Uses Dockerfile so Railway does not mount .next/cache via BuildKit
+# Root directory: `frontend/` (or `Frontend-Dashboard/` if not renamed yet). Dockerfile avoids BuildKit .next/cache mount issues.
 # (fixes intermittent "runc ... error mounting ... .next/cache" failures).
 
 [build]

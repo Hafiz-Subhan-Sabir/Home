@@ -2,8 +2,6 @@ import type {
   AffiliateFunnelResponse,
   AffiliateStats,
   AffiliateVisitorsResponse,
-  AuthLoginResponse,
-  AuthOtpRequestResponse,
   RecentReferralsResponse
 } from "@/lib/affiliateTypes";
 import { getSyndicateApiBase } from "@/lib/syndicateApiBase";
@@ -82,24 +80,6 @@ export async function getRecentReferrals(affiliateId: string, limit = 10): Promi
     { cache: "no-store", headers: authHeaders() }
   );
   return parseJson<RecentReferralsResponse>(res);
-}
-
-export async function requestLoginOtp(email: string): Promise<AuthOtpRequestResponse> {
-  const res = await fetch(`${root()}/affiliate/auth/request-otp`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email })
-  });
-  return parseJson<AuthOtpRequestResponse>(res);
-}
-
-export async function verifyLoginOtp(email: string, otp: string): Promise<AuthLoginResponse> {
-  const res = await fetch(`${root()}/affiliate/auth/verify-otp`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, otp })
-  });
-  return parseJson<AuthLoginResponse>(res);
 }
 
 export async function trackClick(affiliateId: string, visitorId: string) {

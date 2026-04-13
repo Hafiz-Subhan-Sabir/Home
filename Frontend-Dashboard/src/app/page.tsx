@@ -10,6 +10,7 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieCh
 import DashboardControlCenter from "../components/dashboard/DashboardControlCenter";
 import { NavbarNotificationBell } from "../components/dashboard/NotificationBell";
 import type { DashboardNavKey } from "../components/dashboard/types";
+import { useActivityTimeline } from "@/contexts/ActivityTimelineContext";
 import { useGoalsPanel } from "@/contexts/GoalsPanelContext";
 import { GoalsPanel } from "@/components/ui/GoalsPanel";
 import { SyndicateAiChallengePanel } from "../components/SyndicateAiChallengePanel";
@@ -1408,6 +1409,7 @@ function InstructorSlideshow() {
 }
 
 export default function Page() {
+  const { recordVisit, recordEvent } = useActivityTimeline();
   const { setShellSectionKey, setPanelThemeMode, closeGoalsPanel, isGoalsPanelOpen } = useGoalsPanel();
 
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -1557,6 +1559,10 @@ export default function Page() {
   useEffect(() => {
     setShellSectionKey(selectedNavKey);
   }, [selectedNavKey, setShellSectionKey]);
+
+  useEffect(() => {
+    recordVisit(selectedNavKey);
+  }, [selectedNavKey, recordVisit]);
 
   /** Goals panel is per-section: close when navigating so it must be reopened from the FAB. */
   useEffect(() => {
@@ -1811,6 +1817,20 @@ export default function Page() {
   const dashboardCoursesForSnapshots = useMemo(
     () => courses.map((c) => ({ id: c.id, title: c.title, meta: c.meta, statusText: c.statusText, imageSrc: c.imageSrc })),
     [courses]
+  );
+
+  const handleChromaCourseSelect = useCallback(
+    (id: string) => {
+      setSelectedCourseId(id);
+      const c = courses.find((x) => x.id === id);
+      recordEvent({
+        category: "program",
+        title: "Selected course",
+        detail: c?.title ?? id,
+        moreDetails: `Programs grid: focused “${c?.title ?? id}”. Continue from the panel below to advance; progress is saved locally for course id ${id}.`
+      });
+    },
+    [courses, recordEvent]
   );
 
   useLayoutEffect(() => {
@@ -2270,6 +2290,13 @@ export default function Page() {
                     if (hit) {
                       setSelectedNavKey(hit.navKey);
                       setNavQuickSearch("");
+                      recordEvent({
+                        category: "system",
+                        title: "Quick nav search",
+                        detail: `Jumped to ${hit.label}`,
+                        moreDetails: `Navbar search: matched “${q}” → ${hit.label} (section key “${hit.navKey}”).`,
+                        route: typeof window !== "undefined" ? window.location.pathname : undefined
+                      });
                     }
                   }}
                   placeholder="SEARCH SECTIONS"
@@ -2663,7 +2690,7 @@ export default function Page() {
                       <ChromaGrid
                         items={chromaItems}
                         selectedId={selectedCourseId}
-                        onSelect={(id) => setSelectedCourseId(id)}
+                        onSelect={handleChromaCourseSelect}
                         columns={
                           sidebarOccupiesGrid ? (isNarrowViewport ? 2 : 3) : 4
                         }
@@ -2689,6 +2716,12 @@ export default function Page() {
                             setCourseProgress(updated);
                             window.localStorage.setItem("dashboarded:course-progress", JSON.stringify(updated));
                             window.localStorage.setItem("dashboarded:lastCourseId", id);
+                            recordEvent({
+                              category: "program",
+                              title: "Lesson progress",
+                              detail: `${selectedCourseWithProgress.title} → ${next}%`,
+                              moreDetails: `You continued “${selectedCourseWithProgress.title}”. Completion is now ${next}% for this browser session; last active course id: ${id}.`
+                            });
                           }}
                         />
                       </div>

@@ -98,6 +98,7 @@ SYNDICATE_ALLOWED_STATE_KEYS = frozenset(
         "mission_scores_v1",
         "mission_awarded_points_v1",
         "mission_completion_log_v1",
+        "mission_missed_log_v1",
         "streak_before_break",
         "streak_break_date",
         "display_name",

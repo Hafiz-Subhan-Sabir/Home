@@ -2597,10 +2597,8 @@ export default function Page() {
                 sidebarOpen &&
                 !isMobileNavUi &&
                 "max-lg:pointer-events-none max-lg:opacity-[0.42] max-lg:transition-opacity max-lg:duration-200 max-lg:ease-out",
-              "lg:h-full lg:min-h-0"
-              "shell-neon-yellow cut-frame cyber-frame gold-stroke relative flex min-h-0 w-full min-w-0 max-w-none flex-col overflow-hidden border bg-[#060606]/70",
-              sidebarOpen ? "col-span-7 md:col-span-10 lg:col-span-10" : "col-span-12",
               "lg:h-full lg:min-h-0",
+              sidebarOpen ? "col-span-7 md:col-span-10 lg:col-span-10" : "col-span-12",
               (selectedNavKey === "monk" || selectedNavKey === "affiliate") &&
                 "syndicate-main-shell",
               selectedNavKey === "monk" || selectedNavKey === "affiliate"
@@ -2613,8 +2611,7 @@ export default function Page() {
               data-main-shell-scroll
               className={cn(
                 "relative flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden pr-1 no-scrollbar",
-                !sidebarOccupiesGrid && "lg:pl-14"
-                "relative flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden no-scrollbar",
+                !sidebarOccupiesGrid && "lg:pl-14",
                 selectedNavKey === "monk" || selectedNavKey === "affiliate"
                   ? "px-[clamp(0.4rem,1.1vw+0.2rem,0.85rem)]"
                   : "pr-1",

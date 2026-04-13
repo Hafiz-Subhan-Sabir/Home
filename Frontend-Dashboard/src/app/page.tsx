@@ -2290,6 +2290,13 @@ export default function Page() {
                     if (hit) {
                       setSelectedNavKey(hit.navKey);
                       setNavQuickSearch("");
+                      recordEvent({
+                        category: "system",
+                        title: "Quick nav search",
+                        detail: `Jumped to ${hit.label}`,
+                        moreDetails: `Navbar search: matched “${q}” → ${hit.label} (section key “${hit.navKey}”).`,
+                        route: typeof window !== "undefined" ? window.location.pathname : undefined
+                      });
                     }
                   }}
                   placeholder="SEARCH SECTIONS"

@@ -1130,6 +1130,16 @@ function formatMissionCompletionTime(e: MissionCompletionLogEntryV1): string {
   return e.completedIso;
 }
 
+function formatSyndicateInstant(iso: string): string {
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return iso;
+  try {
+    return new Date(t).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  } catch {
+    return iso;
+  }
+}
+
 function loadMissionCompletionLog(): MissionCompletionLogEntryV1[] {
   if (typeof window === "undefined") return [];
   try {
@@ -1148,6 +1158,69 @@ function persistMissionCompletionLog(entries: MissionCompletionLogEntryV1[]) {
   const trimmed = entries.slice(0, MAX_MISSION_COMPLETION_LOG);
   window.localStorage.setItem(ls("mission_completion_log_v1"), JSON.stringify(trimmed));
   onSyndicatePersist();
+}
+
+const MAX_MISSION_MISSED_LOG = 400;
+
+/** Missions that were never completed before the 24h board window (from `created_at`) ended. */
+type MissionMissedLogEntryV1 = {
+  entryId: string;
+  challengeId: number;
+  title: string;
+  category: string;
+  mood: string;
+  createdAtIso: string;
+  /** When the 24h mission-board window closed. */
+  boardExpiredAtIso: string;
+  /** When this device first recorded the miss. */
+  missedAtIso: string;
+  /** Local calendar day when recorded (YYYY-MM-DD). */
+  missedIso: string;
+  userCreated?: boolean;
+};
+
+function isMissionMissedLogEntry(x: unknown): x is MissionMissedLogEntryV1 {
+  if (!x || typeof x !== "object") return false;
+  const o = x as Record<string, unknown>;
+  return (
+    typeof o.entryId === "string" &&
+    typeof o.challengeId === "number" &&
+    Number.isFinite(o.challengeId) &&
+    typeof o.title === "string" &&
+    typeof o.category === "string" &&
+    typeof o.mood === "string" &&
+    typeof o.createdAtIso === "string" &&
+    typeof o.boardExpiredAtIso === "string" &&
+    typeof o.missedAtIso === "string" &&
+    typeof o.missedIso === "string" &&
+    (o.userCreated === undefined || typeof o.userCreated === "boolean")
+  );
+}
+
+function loadMissionMissedLog(): MissionMissedLogEntryV1[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(ls("mission_missed_log_v1"));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isMissionMissedLogEntry);
+  } catch {
+    return [];
+  }
+}
+
+function persistMissionMissedLog(entries: MissionMissedLogEntryV1[]) {
+  if (typeof window === "undefined") return;
+  const trimmed = entries.slice(0, MAX_MISSION_MISSED_LOG);
+  window.localStorage.setItem(ls("mission_missed_log_v1"), JSON.stringify(trimmed));
+  onSyndicatePersist();
+}
+
+function missedEntryIdForRow(row: ChallengeRow): string | null {
+  const createdMs = Date.parse(row.created_at);
+  if (Number.isNaN(createdMs)) return null;
+  return `${row.id}-${createdMs}`;
 }
 
 /** e.g. 264 → "4m 24s", 3725 → "1h 2m 5s" */
@@ -2043,6 +2116,7 @@ export function SyndicateAiChallengePanel() {
   const [missionScores, setMissionScores] = useState<Record<number, MissionScoreResponse>>({});
   const [missionAwardedMap, setMissionAwardedMap] = useState<Record<number, number>>({});
   const [missionCompletionLog, setMissionCompletionLog] = useState<MissionCompletionLogEntryV1[]>([]);
+  const [missionMissedLog, setMissionMissedLog] = useState<MissionMissedLogEntryV1[]>([]);
   const [missionCompleteToast, setMissionCompleteToast] = useState<{
     title: string;
     points: number;
@@ -2192,6 +2266,7 @@ export function SyndicateAiChallengePanel() {
       setMissionScores(loadMissionScores());
       setMissionAwardedMap(loadMissionAwardedPoints());
       setMissionCompletionLog(loadMissionCompletionLog());
+      setMissionMissedLog(loadMissionMissedLog());
       setRedeemedRewards(loadRedeemedRewards());
       setPoundsBalance(loadPoundsBalance());
       if (typeof window !== "undefined") {
@@ -2236,6 +2311,8 @@ export function SyndicateAiChallengePanel() {
         setPointsTotal(loadTotalPoints());
         setDoneIds(loadDoneIds());
         setMissionReminders(loadMissionReminders());
+        setMissionMissedLog(loadMissionMissedLog());
+        setMissionCompletionLog(loadMissionCompletionLog());
         setStreak(res.streak_count);
         setLastActivityIso(res.last_activity_date);
         setStreakBeforeBreakHint(streakBeforeBreakHintForProgress(res.streak_count, res.state));
@@ -2658,6 +2735,73 @@ export function SyndicateAiChallengePanel() {
     });
     return filtered;
   }, [missionsTabReminders, reminderFilterDate, reminderPageSort]);
+
+  const missedLogEntryIds = useMemo(() => new Set(missionMissedLog.map((e) => e.entryId)), [missionMissedLog]);
+
+  /** Stable key so we do not re-run the logger every `nowTick` with new object identities. */
+  const pendingMissedMissionIdsKey = useMemo(() => {
+    const ids: string[] = [];
+    for (const r of rows) {
+      if (doneIds.has(r.id)) continue;
+      if (rowWithinMissionBoardTtl(r, nowTick)) continue;
+      const entryId = missedEntryIdForRow(r);
+      if (!entryId || missedLogEntryIds.has(entryId)) continue;
+      ids.push(entryId);
+    }
+    ids.sort();
+    return ids.join("\u0001");
+  }, [rows, doneIds, nowTick, missedLogEntryIds]);
+
+  useEffect(() => {
+    if (!pendingMissedMissionIdsKey) return;
+    const want = new Set(pendingMissedMissionIdsKey.split("\u0001").filter(Boolean));
+    const missedAtIso = new Date().toISOString();
+    const missedDay = todayLocalISO();
+    setMissionMissedLog((prev) => {
+      const have = new Set(prev.map((e) => e.entryId));
+      let next = prev;
+      for (const r of rows) {
+        const entryId = missedEntryIdForRow(r);
+        if (!entryId || !want.has(entryId) || have.has(entryId)) continue;
+        const createdMs = Date.parse(r.created_at);
+        if (Number.isNaN(createdMs)) continue;
+        const e: MissionMissedLogEntryV1 = {
+          entryId,
+          challengeId: r.id,
+          title: ((r.payload?.challenge_title ?? "Mission") as string).trim() || "Mission",
+          category: ((r.category || r.payload?.category || "business") as string).toLowerCase(),
+          mood: ((r.mood || "") as string).toLowerCase() || "—",
+          createdAtIso: r.created_at,
+          boardExpiredAtIso: new Date(createdMs + MISSION_BOARD_TTL_MS).toISOString(),
+          missedAtIso,
+          missedIso: missedDay,
+          userCreated: !!r.user_created
+        };
+        next = [e, ...next];
+        have.add(entryId);
+      }
+      if (next === prev) return prev;
+      const trimmed = next.slice(0, MAX_MISSION_MISSED_LOG);
+      persistMissionMissedLog(trimmed);
+      return trimmed;
+    });
+  }, [pendingMissedMissionIdsKey, rows]);
+
+  const missionsTabMissedSorted = useMemo(
+    () => [...missionMissedLog].sort((a, b) => Date.parse(b.missedAtIso) - Date.parse(a.missedAtIso)),
+    [missionMissedLog]
+  );
+
+  const missionsTabCompletedPreview = useMemo(() => {
+    const sorted = [...missionCompletionLog].sort((a, b) => {
+      const ta = Date.parse(a.completedAtIso || `${a.completedIso}T12:00:00`);
+      const tb = Date.parse(b.completedAtIso || `${b.completedIso}T12:00:00`);
+      const av = Number.isNaN(ta) ? 0 : ta;
+      const bv = Number.isNaN(tb) ? 0 : tb;
+      return bv - av;
+    });
+    return sorted.slice(0, 24);
+  }, [missionCompletionLog]);
 
   const dayCountdownSec = useMemo(() => secondsUntilLocalMidnight(nowTick), [nowTick]);
   const completedAgentTodayCount = useMemo(
@@ -3494,6 +3638,16 @@ export function SyndicateAiChallengePanel() {
         persistMissionCompletionLog(nextLog);
         setMissionCompletionLog(nextLog);
         setChallengeLogVersion((v) => v + 1);
+
+        const missedKey = missedEntryIdForRow(selected);
+        if (missedKey) {
+          setMissionMissedLog((prev) => {
+            const filtered = prev.filter((e) => e.entryId !== missedKey);
+            if (filtered.length === prev.length) return prev;
+            persistMissionMissedLog(filtered);
+            return filtered;
+          });
+        }
 
         if (lastActivityIso !== today) {
           try {
@@ -5488,6 +5642,121 @@ export function SyndicateAiChallengePanel() {
                 </div>
               </div>
             ) : null}
+          </div>
+
+          <div className="syndicate-readable mt-10 space-y-8">
+            <section
+              className="rounded-2xl border border-[rgba(255,90,90,0.38)] bg-[linear-gradient(165deg,rgba(40,12,12,0.55),rgba(8,6,6,0.94))] px-4 py-5 sm:px-5"
+              aria-label="Missed missions"
+            >
+              <div className="mb-4 flex flex-wrap items-end justify-between gap-2 border-b border-[rgba(255,90,90,0.25)] pb-3">
+                <div>
+                  <h3 className="text-[15px] font-black uppercase tracking-[0.14em] text-rose-200/95 sm:text-[16px]">
+                    Missed missions
+                  </h3>
+                  <p className="mt-1 max-w-2xl text-[12px] leading-relaxed text-white/58 sm:text-[13px]">
+                    These stayed incomplete after the <strong className="text-white/75">24-hour window</strong> from when each mission appeared. They are saved here and sync with your account when you&apos;re signed in.
+                  </p>
+                </div>
+                <span className="rounded-md border border-rose-400/35 bg-black/35 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-rose-200/88">
+                  {missionsTabMissedSorted.length} stored
+                </span>
+              </div>
+              {missionsTabMissedSorted.length === 0 ? (
+                <p className="text-center text-[13px] text-white/48">No missed missions recorded yet.</p>
+              ) : (
+                <ul className="list-none space-y-3 p-0">
+                  {missionsTabMissedSorted.map((e) => {
+                    const liveRow = rows.find((r) => missedEntryIdForRow(r) === e.entryId);
+                    return (
+                      <li
+                        key={e.entryId}
+                        className="flex flex-col gap-2 rounded-xl border border-white/10 bg-black/35 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-[14px] font-bold text-white/88">{e.title}</div>
+                          <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-[11px] uppercase tracking-[0.08em] text-white/45">
+                            <span>{CAT_LABEL[e.category] ?? e.category}</span>
+                            <span>·</span>
+                            <span>{e.mood}</span>
+                            {e.userCreated ? (
+                              <>
+                                <span>·</span>
+                                <span className="text-cyan-200/80">Custom</span>
+                              </>
+                            ) : null}
+                          </div>
+                          <p className="mt-1.5 text-[11px] text-rose-200/65">
+                            Board closed {formatSyndicateInstant(e.boardExpiredAtIso)}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap gap-2">
+                          {liveRow ? (
+                            <button
+                              type="button"
+                              onClick={() => openMissionDetail(liveRow)}
+                              className={cn("min-h-[40px] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em]", CTA_BTN)}
+                            >
+                              Open mission
+                            </button>
+                          ) : (
+                            <span className="self-center text-[11px] text-white/40">No longer on device list</span>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+
+            <section
+              className="rounded-2xl border border-[rgba(0,255,122,0.28)] bg-[linear-gradient(165deg,rgba(8,28,18,0.5),rgba(6,8,8,0.94))] px-4 py-5 sm:px-5"
+              aria-label="Completed missions"
+            >
+              <div className="mb-4 flex flex-wrap items-end justify-between gap-2 border-b border-[rgba(0,255,122,0.2)] pb-3">
+                <div>
+                  <h3 className="text-[15px] font-black uppercase tracking-[0.14em] text-emerald-200/95 sm:text-[16px]">
+                    Completed missions
+                  </h3>
+                  <p className="mt-1 max-w-2xl text-[12px] leading-relaxed text-white/58 sm:text-[13px]">
+                    Finished missions are stored here (and in <strong className="text-white/75">Stats &amp; profile</strong> with full history). New completions appear automatically.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowStatsProfile(true);
+                    setSyndicateView("challenges");
+                  }}
+                  className="min-h-[40px] shrink-0 rounded-lg border border-emerald-400/40 bg-black/30 px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-emerald-200/90 hover:bg-black/45"
+                >
+                  Full history
+                </button>
+              </div>
+              {missionsTabCompletedPreview.length === 0 ? (
+                <p className="text-center text-[13px] text-white/48">Complete a mission to build this list.</p>
+              ) : (
+                <ul className="list-none space-y-3 p-0">
+                  {missionsTabCompletedPreview.map((e) => (
+                    <li
+                      key={e.entryId}
+                      className="rounded-xl border border-white/10 bg-black/35 px-3 py-3 sm:px-4"
+                    >
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <span className="min-w-0 flex-1 text-[14px] font-bold text-white/88">{e.title}</span>
+                        <span className="shrink-0 text-[12px] font-black tabular-nums text-emerald-200/90">
+                          +{e.awardedPoints} pts
+                        </span>
+                      </div>
+                      <div className="mt-1 text-[11px] text-white/48">
+                        {formatMissionCompletionTime(e)} · {CAT_LABEL[e.category] ?? e.category} · {e.mood}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           </div>
 
           {missionsTabReminders.length > 0 ? (

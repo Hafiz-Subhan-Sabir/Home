@@ -1357,7 +1357,7 @@ function MissionReminderCard({
                         const r = rows.find((x) => x.id === item.id);
                         if (r) onOpenMission(r);
                       }}
-                      className="syndicate-cyber-card__cta min-h-[44px] flex-1 px-4 py-2 text-[11px] sm:min-h-0 sm:flex-none"
+                      className="syndicate-cyber-card__cta syndicate-cyber-card__cta--view min-h-[44px] flex-1 px-4 py-2 text-[11px] sm:min-h-0 sm:flex-none"
                     >
                       Open mission
                     </button>
@@ -1532,7 +1532,11 @@ function CompactCard({
               ) : null}
               <h4 className="syndicate-cyber-card__title">{title}</h4>
             </div>
-            <button type="button" onClick={onView} className="syndicate-cyber-card__cta min-h-[44px] touch-manipulation sm:min-h-0">
+            <button
+              type="button"
+              onClick={onView}
+              className="syndicate-cyber-card__cta syndicate-cyber-card__cta--view min-h-[44px] touch-manipulation sm:min-h-0"
+            >
               View mission
             </button>
           </div>

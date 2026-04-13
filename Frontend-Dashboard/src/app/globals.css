@@ -348,28 +348,37 @@
   margin-bottom: 0.65rem;
 }
 
-/* Mobile: avoid countdown pill overlapping mood / reminder label */
+/* Mobile: PTS top-left, timer top-right, mood full width below (no overlap) */
 @media (max-width: 639px) {
   .syndicate-cyber-card__meta:not(.syndicate-cyber-card__meta--reminder) {
-    flex-wrap: wrap;
-    row-gap: 0.5rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "pts timer"
+      "mood mood";
+    align-items: center;
+    column-gap: 0.5rem;
+    row-gap: 0.45rem;
   }
 
   .syndicate-cyber-card__meta:not(.syndicate-cyber-card__meta--reminder) > .syndicate-cyber-card__pts {
-    order: 1;
+    grid-area: pts;
+    justify-self: start;
   }
 
   .syndicate-cyber-card__meta:not(.syndicate-cyber-card__meta--reminder) > .syndicate-cyber-card__mood {
-    order: 2;
-    flex: 1 1 100%;
+    grid-area: mood;
     width: 100%;
+    min-width: 0;
+    text-align: center;
   }
 
   .syndicate-cyber-card__meta:not(.syndicate-cyber-card__meta--reminder) > .syndicate-cyber-card__timer,
   .syndicate-cyber-card__meta:not(.syndicate-cyber-card__meta--reminder) > .syndicate-cyber-card__timer.syndicate-cyber-card__timer--complete {
-    order: 3;
-    margin-left: auto;
-    margin-right: auto;
+    grid-area: timer;
+    justify-self: end;
+    margin: 0;
+    max-width: 100%;
   }
 
   .syndicate-cyber-card__meta--reminder {

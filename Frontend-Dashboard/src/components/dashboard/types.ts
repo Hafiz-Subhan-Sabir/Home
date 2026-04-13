@@ -16,6 +16,8 @@ export type ActivityItem = {
   detail?: string;
   /** Longer copy shown when the user expands “Details”. */
   moreDetails?: string;
+  /** Next.js pathname (or browser path) when the event was recorded, if known. */
+  route?: string;
   ts: number; // epoch ms
 };
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { createPortal } from "react-dom";
 import { useActivityTimeline } from "@/contexts/ActivityTimelineContext";
-import type { ActivityCategory, DashboardNavKey, DashboardSnapshots } from "./types";
+import type { ActivityCategory, ActivityItem, DashboardNavKey, DashboardSnapshots } from "./types";
 import { useDashboardSnapshots, type DashboardCourseLike } from "./useDashboardSnapshots";
 import { accentByKey, Card, cn, ProgressBar, themeAccent, type ThemeMode } from "./dashboardPrimitives";
 import { PortalSessionControls } from "../auth/PortalSessionControls";
@@ -34,12 +35,76 @@ function timeAgoCaps(ts: number) {
   return `${d}D AGO`;
 }
 
+function formatActivityWhen(ts: number) {
+  try {
+    return new Date(ts).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  } catch {
+    return "";
+  }
+}
+
 const ACTIVITY_CAT_LABEL: Record<ActivityCategory, string> = {
   program: "PROGRAM",
   syndicate: "SYNDICATE",
   affiliate: "AFFILIATE",
   system: "SYSTEM"
 };
+
+const ACTIVITY_RECENT_WINDOW_MS = 2 * 60 * 1000;
+
+function activityStructuredFields(a: ActivityItem) {
+  const when = formatActivityWhen(a.ts);
+  const rel = timeAgo(a.ts);
+  const type = ACTIVITY_CAT_LABEL[a.category];
+  const headline = a.detail?.trim() || null;
+  const story = a.moreDetails?.trim() || null;
+  const path = a.route?.trim() || null;
+  return { when, rel, type, headline, story, path };
+}
+
+/** Concise labeled block for one event (timeline details + full log). */
+function ActivityEventDetailBlock({ a }: { a: ActivityItem }) {
+  const f = activityStructuredFields(a);
+  const detailFallback =
+    !f.story && !f.headline && !f.path ? "No extra description was stored for this entry." : null;
+  return (
+    <div className="rounded-md border border-[rgba(255,215,0,0.14)] bg-black/40 px-3 py-2.5">
+      <div className="text-[12px] font-semibold leading-snug text-white/90">{a.title}</div>
+      <dl className="mt-2 grid grid-cols-[minmax(0,4.5rem)_1fr] gap-x-3 gap-y-1.5 text-[11px] leading-snug">
+        <dt className="font-bold uppercase tracking-[0.08em] text-white/38">When</dt>
+        <dd className="text-white/72">
+          {f.when}
+          <span className="text-white/45"> · {f.rel}</span>
+        </dd>
+        <dt className="font-bold uppercase tracking-[0.08em] text-white/38">Type</dt>
+        <dd className="text-[color:var(--goals-milestones-gold)]/88">{f.type}</dd>
+        {f.headline ? (
+          <>
+            <dt className="font-bold uppercase tracking-[0.08em] text-white/38">Summary</dt>
+            <dd className="text-white/65">{f.headline}</dd>
+          </>
+        ) : null}
+        {f.path ? (
+          <>
+            <dt className="font-bold uppercase tracking-[0.08em] text-white/38">Path</dt>
+            <dd className="break-all font-mono text-[10px] text-cyan-200/75">{f.path}</dd>
+          </>
+        ) : null}
+        {f.story ? (
+          <>
+            <dt className="font-bold uppercase tracking-[0.08em] text-white/38">Details</dt>
+            <dd className="whitespace-pre-wrap break-words text-white/62">{f.story}</dd>
+          </>
+        ) : detailFallback ? (
+          <>
+            <dt className="font-bold uppercase tracking-[0.08em] text-white/38">Details</dt>
+            <dd className="text-white/50">{detailFallback}</dd>
+          </>
+        ) : null}
+      </dl>
+    </div>
+  );
+}
 
 function HeroStatusPanel({
   themeMode,
@@ -375,11 +440,140 @@ function AffiliateSnapshotCard({
 
 function ActivityTimelineCard({ themeMode }: { themeMode: ThemeMode }) {
   const { items } = useActivityTimeline();
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [recentDetailsOpen, setRecentDetailsOpen] = useState(false);
+  const [fullLogOpen, setFullLogOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const gold = "rgba(255, 215, 0, 0.85)";
   const goldSoft = "rgba(255, 215, 0, 0.42)";
 
-  const rows = useMemo(() => items.slice(0, 20), [items]);
+  const recentWindowItems = useMemo(() => {
+    const cutoff = nowMs - ACTIVITY_RECENT_WINDOW_MS;
+    return items.filter((a) => a.ts >= cutoff).sort((a, b) => b.ts - a.ts);
+  }, [items, nowMs]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const tick = () => setNowMs(Date.now());
+    const t = window.setInterval(tick, 10_000);
+    const onVis = () => {
+      if (document.visibilityState === "visible") tick();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.clearInterval(t);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!fullLogOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFullLogOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [fullLogOpen]);
+
+  useEffect(() => {
+    if (!fullLogOpen || typeof document === "undefined") return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [fullLogOpen]);
+
+  const fullLogModal = mounted
+    ? createPortal(
+        <AnimatePresence>
+          {fullLogOpen ? (
+            <motion.div
+              key="activity-full-log"
+              className="fixed inset-0 z-[240] flex items-center justify-center p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            >
+              <button
+                type="button"
+                className="absolute inset-0 bg-black/72 backdrop-blur-sm"
+                aria-label="Close activity log"
+                onClick={() => setFullLogOpen(false)}
+              />
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="activity-full-log-title"
+                className="relative z-[1] flex max-h-[min(85vh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-lg border border-[rgba(255,215,0,0.35)] bg-[#080808]/95 shadow-[0_0_48px_rgba(255,215,0,0.12)]"
+                initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[rgba(255,215,0,0.2)] px-4 py-3">
+                  <div>
+                    <div
+                      id="activity-full-log-title"
+                      className="text-[11px] font-black uppercase tracking-[0.2em] text-[color:var(--goals-milestones-gold)]/95"
+                    >
+                      Full activity log
+                    </div>
+                    <div className="mt-0.5 text-[11px] text-white/45">
+                      {items.length} entr{items.length === 1 ? "y" : "ies"} — same layout as timeline details
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFullLogOpen(false)}
+                    className="rounded-md border border-[rgba(255,215,0,0.4)] bg-black/45 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-[color:var(--goals-milestones-gold)]/95 transition hover:border-[rgba(255,215,0,0.65)]"
+                  >
+                    Close
+                  </button>
+                </div>
+                <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overflow-x-hidden p-4 [scrollbar-color:rgba(255,215,0,0.4)_transparent]">
+                  {items.length === 0 ? (
+                    <p className="text-center text-[13px] leading-relaxed text-white/55">
+                      Nothing logged yet. Switch sections, open Goals &amp; Milestones, pick a course, or visit another app
+                      route.
+                    </p>
+                  ) : (
+                    items.map((a) => (
+                      <div
+                        key={a.id}
+                        className="rounded-md border border-[rgba(255,215,0,0.18)] bg-black/40 px-3 py-2.5"
+                      >
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="text-[12px] font-semibold text-white/88">{a.title}</span>
+                          <span className="rounded-md border border-[rgba(255,215,0,0.3)] bg-black/50 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-[color:var(--goals-milestones-gold)]/88">
+                            {ACTIVITY_CAT_LABEL[a.category]}
+                          </span>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">
+                            {timeAgoCaps(a.ts)} · {formatActivityWhen(a.ts)}
+                          </span>
+                        </div>
+                        {a.detail ? (
+                          <div className="mt-1 text-[11px] leading-snug text-white/50">{a.detail}</div>
+                        ) : null}
+                        <div className="mt-2">
+                          <ActivityEventDetailBlock a={a} />
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>,
+        document.body
+      )
+    : null;
 
   return (
     <Card
@@ -387,68 +581,108 @@ function ActivityTimelineCard({ themeMode }: { themeMode: ThemeMode }) {
       title="Activity Timeline"
       frameVariant="shell"
       right={
-        <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--goals-milestones-gold)]/80">
-          Unified
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setFullLogOpen(true)}
+            className="rounded-md border border-[rgba(255,215,0,0.45)] bg-black/40 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-[color:var(--goals-milestones-gold)]/95 transition hover:border-[rgba(255,215,0,0.7)] hover:bg-black/55"
+          >
+            Full log
+          </button>
+          <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--goals-milestones-gold)]/80">
+            2 min
+          </div>
         </div>
       }
     >
-      <div className="min-h-[min(42vh,380px)] max-h-[min(62vh,620px)] space-y-2 overflow-y-auto overflow-x-hidden pr-1 [scrollbar-color:rgba(255,215,0,0.4)_transparent]">
-        {rows.length === 0 ? (
+      {fullLogModal}
+      <div className="min-h-[min(36vh,320px)] max-h-[min(62vh,620px)] overflow-y-auto overflow-x-hidden pr-1 [scrollbar-color:rgba(255,215,0,0.4)_transparent]">
+        {items.length === 0 ? (
           <div className="rounded-md border border-[rgba(255,215,0,0.2)] bg-black/35 px-4 py-8 text-center text-[13px] leading-relaxed text-white/55">
-            Your moves appear here automatically—open a section, a course, or Goals &amp; Milestones to start the feed.
+            Your moves are logged automatically—open a section, a course, use quick search, or Goals &amp; Milestones. The card
+            below will show the <span className="text-[color:var(--goals-milestones-gold)]/90">last 2 minutes</span>; use{" "}
+            <span className="text-[color:var(--goals-milestones-gold)]/90">Full log</span> for everything else.
+          </div>
+        ) : recentWindowItems.length === 0 ? (
+          <div className="rounded-md border border-[rgba(255,215,0,0.2)] bg-black/35 px-4 py-7 text-center text-[13px] leading-relaxed text-white/55">
+            <p className="text-white/70">Nothing in the last 2 minutes.</p>
+            <p className="mt-2 text-[12px] text-white/48">
+              Older activity is still saved — open <span className="text-[color:var(--goals-milestones-gold)]/85">Full log</span>{" "}
+              to review it.
+            </p>
           </div>
         ) : (
-          rows.map((a) => {
-            const open = expandedId === a.id;
-            return (
-              <div
-                key={a.id}
-                className="rounded-md border border-[rgba(255,215,0,0.22)] bg-black/45 px-3 py-2.5 md:px-4 md:py-3"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-start gap-2.5">
-                    <span
-                      className="mt-[6px] inline-flex h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{
-                        background: gold,
-                        boxShadow: `0 0 12px ${goldSoft}, 0 0 20px rgba(255,215,0,0.25)`
-                      }}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className="text-[12px] font-semibold text-white/88">{a.title}</span>
-                        <span className="rounded-md border border-[rgba(255,215,0,0.35)] bg-black/50 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-[color:var(--goals-milestones-gold)]/90">
-                          {ACTIVITY_CAT_LABEL[a.category]}
+          <div className="rounded-lg border border-[rgba(255,215,0,0.28)] bg-black/40 px-3 py-3 md:px-4 md:py-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-2.5">
+                <span
+                  className="mt-[6px] inline-flex h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{
+                    background: gold,
+                    boxShadow: `0 0 12px ${goldSoft}, 0 0 20px rgba(255,215,0,0.25)`
+                  }}
+                />
+                <div className="min-w-0">
+                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[color:var(--goals-milestones-gold)]/90">
+                    Last 2 minutes
+                  </div>
+                  <p className="mt-1 text-[12px] leading-snug text-white/58">
+                    <span className="font-semibold tabular-nums text-white/75">{recentWindowItems.length}</span>{" "}
+                    {recentWindowItems.length === 1 ? "event" : "events"} · newest{" "}
+                    <span className="text-white/55">{timeAgo(recentWindowItems[0]!.ts)}</span>
+                  </p>
+                  <ul className="mt-2 list-none space-y-1.5 p-0 text-[11px] text-white/55">
+                    {recentWindowItems.slice(0, 5).map((a) => (
+                      <li key={a.id} className="flex gap-2 border-l-2 border-[rgba(255,215,0,0.25)] pl-2">
+                        <span className="shrink-0 font-mono text-[10px] text-white/40">
+                          {new Date(a.ts).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                         </span>
-                      </div>
-                      {a.detail ? (
-                        <div className="mt-1 line-clamp-2 text-[12px] leading-snug text-white/55">{a.detail}</div>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 flex-col items-end gap-1.5">
-                    <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--goals-milestones-gold)]/90">
-                      {timeAgoCaps(a.ts)}
-                    </div>
-                    {a.moreDetails ? (
-                      <button
-                        type="button"
-                        onClick={() => setExpandedId(open ? null : a.id)}
-                        className="rounded border border-[rgba(255,215,0,0.4)] bg-black/40 px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-[color:var(--goals-milestones-gold)]/95 transition hover:border-[rgba(255,215,0,0.65)] hover:bg-black/55"
-                      >
-                        {open ? "Hide" : "Details"}
-                      </button>
-                    ) : null}
-                  </div>
+                        <span className="min-w-0 text-white/70">
+                          <span className="font-medium text-white/82">{a.title}</span>
+                          {a.detail ? <span className="text-white/45"> — {a.detail}</span> : null}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  {recentWindowItems.length > 5 ? (
+                    <p className="mt-2 text-[10px] uppercase tracking-[0.12em] text-white/40">
+                      +{recentWindowItems.length - 5} more in details
+                    </p>
+                  ) : null}
                 </div>
-                {open && a.moreDetails ? (
-                  <div className="mt-3 border-t border-[rgba(255,215,0,0.15)] pt-3 text-[12px] leading-relaxed text-white/70">
-                    {a.moreDetails}
-                  </div>
-                ) : null}
               </div>
-            );
-          })
+              <button
+                type="button"
+                onClick={() => setRecentDetailsOpen((o) => !o)}
+                className="shrink-0 rounded border border-[rgba(255,215,0,0.45)] bg-black/45 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-[color:var(--goals-milestones-gold)]/95 transition hover:border-[rgba(255,215,0,0.7)] hover:bg-black/60"
+              >
+                {recentDetailsOpen ? "Hide" : "Details"}
+              </button>
+            </div>
+            <AnimatePresence initial={false}>
+              {recentDetailsOpen ? (
+                <motion.div
+                  key="recent-activity-details"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.22, ease: "easeOut" }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-4 space-y-3 border-t border-[rgba(255,215,0,0.15)] pt-4">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">
+                      Everything in this window — newest first
+                    </p>
+                    <div className="space-y-3">
+                      {recentWindowItems.map((a) => (
+                        <ActivityEventDetailBlock key={a.id} a={a} />
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          </div>
         )}
       </div>
     </Card>

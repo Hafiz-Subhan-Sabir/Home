@@ -23,6 +23,7 @@ type ActivityTimelineContextValue = {
     title: string;
     detail?: string;
     moreDetails?: string;
+    route?: string;
   }) => void;
 };
 
@@ -114,14 +115,23 @@ export function ActivityTimelineProvider({ children }: { children: ReactNode }) 
   }, []);
 
   const recordEvent = useCallback(
-    (e: { category: ActivityCategory; title: string; detail?: string; moreDetails?: string }) => {
+    (e: {
+      category: ActivityCategory;
+      title: string;
+      detail?: string;
+      moreDetails?: string;
+      route?: string;
+    }) => {
+      const route =
+        e.route ?? (typeof window !== "undefined" ? window.location.pathname : undefined);
       const row: ActivityItem = {
         id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
         ts: Date.now(),
         category: e.category,
         title: e.title,
         detail: e.detail,
-        moreDetails: e.moreDetails
+        moreDetails: e.moreDetails,
+        route
       };
       setItems((prev) => {
         const next = [row, ...prev].slice(0, MAX_ITEMS);
@@ -145,11 +155,13 @@ export function ActivityTimelineProvider({ children }: { children: ReactNode }) 
         moreDetails: `You switched to the “${navKey}” area of the shell.`
       };
 
+      const path = typeof window !== "undefined" ? window.location.pathname : "";
       recordEvent({
         category: meta.category,
         title: meta.title,
         detail: meta.detail,
-        moreDetails: meta.moreDetails
+        moreDetails: meta.moreDetails,
+        route: path ? path : undefined
       });
     },
     [recordEvent]

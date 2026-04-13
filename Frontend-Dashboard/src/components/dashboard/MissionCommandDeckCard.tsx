@@ -325,8 +325,12 @@ function bucketMissions(missions: MissionRow[]) {
   const now = Date.now();
   const active: MissionRow[] = [];
   const missed: MissionRow[] = [];
+  const done: MissionRow[] = [];
   for (const m of missions) {
-    if (m.status === "done") continue;
+    if (m.status === "done") {
+      done.push(m);
+      continue;
+    }
     if (m.status === "missed") {
       missed.push(m);
       continue;
@@ -337,7 +341,7 @@ function bucketMissions(missions: MissionRow[]) {
       else active.push(m);
     }
   }
-  return { active, missed };
+  return { active, missed, done };
 }
 
 function DeckEmptyCta({
@@ -396,8 +400,10 @@ export function MissionCommandDeckCard({
 
   const [mSearchA, setMSearchA] = useState("");
   const [mSearchM, setMSearchM] = useState("");
+  const [mSearchC, setMSearchC] = useState("");
   const [mSortA, setMSortA] = useState<DeckSortDir>("asc");
   const [mSortM, setMSortM] = useState<DeckSortDir>("desc");
+  const [mSortC, setMSortC] = useState<DeckSortDir>("desc");
 
   const [nSearch, setNSearch] = useState("");
   const [nSort, setNSort] = useState<DeckSortDir>("desc");
@@ -984,6 +990,7 @@ export function MissionCommandDeckCard({
   const missionBuckets = useMemo(() => bucketMissions(missions), [missions]);
   const activeMissions = missionBuckets.active;
   const missedMissions = missionBuckets.missed;
+  const completedMissions = missionBuckets.done;
 
   const sortByTarget = (a: MissionRow, b: MissionRow, dir: DeckSortDir) => {
     const da = new Date(a.targetIso).getTime();
@@ -1002,6 +1009,12 @@ export function MissionCommandDeckCard({
     if (browseDate) rows = rows.filter((r) => missionLocalDay(r.targetIso) === browseDate);
     return [...rows].sort((a, b) => sortByTarget(a, b, mSortM));
   }, [missedMissions, mSearchM, mSortM, browseDate]);
+
+  const filteredCompletedMissions = useMemo(() => {
+    let rows = filterBySearch(completedMissions, (r) => `${r.title} ${r.targetIso}`, mSearchC);
+    if (browseDate) rows = rows.filter((r) => missionLocalDay(r.targetIso) === browseDate);
+    return [...rows].sort((a, b) => sortByTarget(a, b, mSortC));
+  }, [completedMissions, mSearchC, mSortC, browseDate]);
 
   const filteredNotes = useMemo(() => {
     let rows = filterBySearch(notes, (n) => `${n.title} ${n.body}`, nSearch);
@@ -1136,7 +1149,7 @@ export function MissionCommandDeckCard({
           </div>
           <p className="mt-2 max-w-prose text-[15px] font-normal leading-relaxed text-neutral-200/90 md:text-[15px] md:leading-[1.55]">
             Create a mission with a target date and time. Reminders fire automatically at 1 week, 3 days, 24 hours, 12 hours,
-            6 hours, 1 hour, and 30 minutes before due. Track active and missed.
+            6 hours, 1 hour, and 30 minutes before due. Track active, missed, and completed missions below.
           </p>
 
           {useApiDeck && !canDeckWrite ? (
@@ -1356,6 +1369,88 @@ export function MissionCommandDeckCard({
                               className={cn(
                                 DECK_ROW_BTN_SECONDARY,
                                 "border-[rgba(255,215,0,0.38)] bg-black/45 text-[rgba(255,248,220,0.9)] shadow-[0_2px_0_rgba(0,0,0,0.35)] hover:border-[rgba(255,215,0,0.58)] hover:bg-black/55 focus-visible:ring-[rgba(255,215,0,0.45)]"
+                              )}
+                              onClick={() => void patchMission(m.id, { status: "active" })}
+                            >
+                              Reactivate
+                            </button>
+                          </div>
+                        )
+                      }
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 w-full min-w-0">
+            <div className={DECK_SUBPANEL}>
+              <div className={DECK_SUBPANEL_TITLE}>Completed missions</div>
+              <DeckListToolbar
+                tone="emerald"
+                search={mSearchC}
+                onSearchChange={setMSearchC}
+                sortLabel="Due"
+                sortDir={mSortC}
+                onSortDirToggle={() => setMSortC((d) => (d === "desc" ? "asc" : "desc"))}
+                placeholder="Search completed…"
+              />
+              <div className={cn(DECK_LIST_INNER_BASE, SCROLL_GOLD)}>
+                {filteredCompletedMissions.length === 0 ? (
+                  browseDate ? (
+                    <DeckEmptyCta
+                      message="No completed missions on this day."
+                      actionLabel="Show all days"
+                      onAction={() => setBrowseDate(null)}
+                      accentClass="border-emerald-500/28 bg-black/35"
+                    />
+                  ) : (
+                    <DeckEmptyCta
+                      message="No completed missions in the deck yet — finish one from Active or Missed above."
+                      actionLabel="Create a mission"
+                      onAction={focusMissionComposer}
+                      accentClass="border-emerald-500/28 bg-black/35"
+                    />
+                  )
+                ) : (
+                  filteredCompletedMissions.map((m) => (
+                    <DeckListItem
+                      key={m.id}
+                      tone="emerald"
+                      title={m.title}
+                      badge={<MissionStatusBadge status="done" />}
+                      subtitle={
+                        <DueDateLine
+                          label="Target was"
+                          value={new Date(m.targetIso).toLocaleString()}
+                        />
+                      }
+                      footer={
+                        (!useApiDeck || canDeckWrite) && (
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              className={cn(
+                                DECK_ROW_BTN_SECONDARY,
+                                "border-white/22 bg-black/45 text-white/90 shadow-[0_2px_0_rgba(0,0,0,0.35)] hover:border-white/40 focus-visible:ring-white/35"
+                              )}
+                              onClick={() =>
+                                setTimeEdit({
+                                  kind: "mission",
+                                  id: m.id,
+                                  title: m.title,
+                                  targetIso: m.targetIso
+                                })
+                              }
+                            >
+                              Edit time
+                            </button>
+                            <button
+                              type="button"
+                              className={cn(
+                                DECK_ROW_BTN_PRIMARY,
+                                "border-emerald-400/48 bg-emerald-500/14 text-emerald-100 shadow-[0_2px_0_rgba(0,0,0,0.35)] hover:border-emerald-300/72 hover:bg-emerald-500/22 focus-visible:ring-emerald-400/55"
                               )}
                               onClick={() => void patchMission(m.id, { status: "active" })}
                             >

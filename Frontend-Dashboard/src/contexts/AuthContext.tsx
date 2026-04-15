@@ -9,15 +9,11 @@ import {
   useState,
   type ReactNode
 } from "react";
-import { usePathname, useRouter } from "next/navigation";
 import {
-  authRequired,
   clearTokens,
   hasPermission,
-  loginRequest,
   logoutRequest,
   meRequest,
-  persistTokens,
   readStoredAccess,
   readStoredRefresh,
   refreshRequest,
@@ -38,8 +34,6 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<PortalUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
-  const pathname = usePathname();
 
   const bootstrap = useCallback(async () => {
     const access = readStoredAccess();
@@ -80,23 +74,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void bootstrap();
   }, [bootstrap]);
 
-  useEffect(() => {
-    if (!authRequired() || loading) return;
-    if (pathname === "/login") return;
-    if (!readStoredAccess() && !readStoredRefresh()) {
-      router.replace("/login");
-    }
-  }, [loading, pathname, router]);
-
-  const login = useCallback(
-    async (username: string, password: string) => {
-      const res = await loginRequest(username, password);
-      persistTokens(res.access, res.refresh);
-      setUser(res.user);
-      router.replace("/");
-    },
-    [router]
-  );
+  const login = useCallback(async (_username: string, _password: string) => {
+    throw new Error("Dashboard login has been removed from this app.");
+  }, []);
 
   const logout = useCallback(async () => {
     const at = readStoredAccess();
@@ -109,8 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     clearTokens();
     setUser(null);
-    if (authRequired()) router.replace("/login");
-  }, [router]);
+  }, []);
 
   const refreshUser = useCallback(async () => {
     const at = readStoredAccess();

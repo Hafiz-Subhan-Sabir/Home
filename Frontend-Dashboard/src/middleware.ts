@@ -34,15 +34,6 @@ const sameHostHint =
 
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  const syndicatePath = pathname.replace(/\/+$/, "") || "/";
-  if (
-    syndicatePath === "/syndicate/login" ||
-    syndicatePath === "/syndicate/signup" ||
-    syndicatePath.startsWith("/syndicate/login/") ||
-    syndicatePath.startsWith("/syndicate/signup/")
-  ) {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
   if (!pathname.startsWith("/static/")) {
     return NextResponse.next();
   }
@@ -79,5 +70,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/static/:path*", "/syndicate/login", "/syndicate/login/:path*", "/syndicate/signup", "/syndicate/signup/:path*"]
+  matcher: ["/static/:path*"]
 };

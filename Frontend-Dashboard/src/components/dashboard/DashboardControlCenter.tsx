@@ -7,7 +7,6 @@ import { useActivityTimeline } from "@/contexts/ActivityTimelineContext";
 import type { ActivityCategory, ActivityItem, DashboardNavKey, DashboardSnapshots } from "./types";
 import { useDashboardSnapshots, type DashboardCourseLike } from "./useDashboardSnapshots";
 import { accentByKey, Card, cn, ProgressBar, themeAccent, type ThemeMode } from "./dashboardPrimitives";
-import { PortalSessionControls } from "../auth/PortalSessionControls";
 import { GoalPathSystem } from "./path/GoalPathSystem";
 import { MissionCommandDeckCard } from "./MissionCommandDeckCard";
 import { SyndicateReminderDueBanner } from "./SyndicateReminderDueBanner";
@@ -492,9 +491,6 @@ function HeroStatusPanel({
               <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/70">Mission points</div>
               <div className="mt-1 font-mono text-[14px] font-black tabular-nums text-white/92">{s.affiliate.earnings}</div>
             </button>
-          </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-2 pl-1">
-            <PortalSessionControls themeMode={themeMode} />
           </div>
         </div>
       </div>

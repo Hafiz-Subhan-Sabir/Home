@@ -13,15 +13,6 @@ function describePath(pathname: string): {
   detail: string;
   moreDetails: string;
 } {
-  if (pathname === "/login") {
-    return {
-      category: "system",
-      title: "Opened sign-in",
-      detail: "Authentication route",
-      moreDetails:
-        "You loaded the /login route. After you sign in, your session may redirect back into the main operator shell."
-    };
-  }
   if (pathname === "/syndicate" || pathname.startsWith("/syndicate/")) {
     return {
       category: "syndicate",

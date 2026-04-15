@@ -1,0 +1,58 @@
+# ----- Secrets / local config -----
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# ----- Python / Django -----
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Local databases / runtime files
+*.sqlite3
+*.db
+*.log
+*.pid
+
+# Django collected/static caches
+backend/staticfiles/
+backend/media/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# ----- Node / Next.js -----
+node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+frontend/coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ----- IDE / OS -----
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+
+# ----- Cursor / local assistant artifacts -----
+.cursor/
+.cursor-cache/
+

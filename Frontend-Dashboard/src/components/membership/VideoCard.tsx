@@ -174,7 +174,9 @@ export function VideoCard({ video, onPlay, index = 0, visual = "landscape", fram
         </span>
       </button>
 
-      <h3 className="relative z-[1] mt-4 line-clamp-2 text-[15px] font-bold leading-snug text-neutral-50">{video.title}</h3>
+      <h3 className="relative z-[1] mt-4 line-clamp-2 text-[15px] font-bold leading-snug text-[#facc15] [text-shadow:0_0_12px_rgba(250,204,21,0.25)]">
+        {video.title}
+      </h3>
       {published ? (
         <p className="relative z-[1] mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/38">{published}</p>
       ) : null}

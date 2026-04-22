@@ -19,7 +19,17 @@ import { MembershipContentHub } from "../components/membership/MembershipContent
 import { AffiliatePortalSection } from "@/components/affiliate/AffiliatePortalSection";
 import { ProgramsCourseSection } from "@/components/programs/ProgramsCourseSection";
 import { AFFILIATE_REFERRAL_IDS_STORAGE_KEY } from "@/lib/affiliateReferralIds";
-import { PROFILE_AVATAR_STORAGE_KEY, PROFILE_DISPLAY_NAME_KEY } from "@/lib/dashboardProfileStorage";
+import {
+  DEFAULT_DASHBOARD_PROFILE_AVATAR,
+  notifyDashboardProfileUpdated,
+  PROFILE_AVATAR_STORAGE_KEY,
+  PROFILE_DISPLAY_NAME_KEY,
+  readDashboardProfileAvatarStorageRaw,
+  readDashboardProfileDisplayName,
+  resolveDashboardAvatarDisplayUrl,
+  writeDashboardProfileAvatarRaw,
+  writeDashboardProfileDisplayName
+} from "@/lib/dashboardProfileStorage";
 import { STORAGE_SIMPLE_AUTH } from "@/lib/portal-api";
 import { logoutSyndicateSession } from "@/lib/syndicateAuth";
 import { Toaster } from "react-hot-toast";
@@ -586,7 +596,7 @@ function SyndicateModeSection() {
     >
       <div
         className={cn(
-          "syndicate-dystopia-enclosure syndicate-missions-shell cyber-frame relative flex w-full flex-col overflow-x-hidden bg-[#060606]/88 px-0 pb-3 pt-0 sm:pb-4 sm:pt-0.5",
+          "syndicate-dystopia-enclosure syndicate-missions-shell cyber-frame relative flex w-full flex-col overflow-x-hidden bg-[#060606]/88 px-0 pb-0 pt-0 sm:pb-0 sm:pt-0.5",
           "[&:not(:has(#syndicate-mission-detail-top))]:overflow-y-visible",
           "has-[#syndicate-mission-detail-top]:min-h-0 has-[#syndicate-mission-detail-top]:flex-1 has-[#syndicate-mission-detail-top]:overflow-y-hidden"
         )}
@@ -1484,34 +1494,31 @@ export default function Page() {
   const [themeMode, setThemeMode] = useState<ThemeMode>("default");
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileAvatar, setProfileAvatar] = useState<string>("/assets/a.webp");
-  const [profileName, setProfileName] = useState(() => {
-    if (typeof window === "undefined") return "Member";
-    try {
-      return window.localStorage.getItem(PROFILE_DISPLAY_NAME_KEY)?.trim() || "Member";
-    } catch {
-      return "Member";
-    }
-  });
+  const [profileName, setProfileName] = useState(() =>
+    typeof window === "undefined" ? "Member" : readDashboardProfileDisplayName()
+  );
 
   const persistProfileName = useCallback((name: string) => {
     const trimmed = name.trim() || "Member";
     setProfileName(trimmed);
     try {
-      window.localStorage.setItem(PROFILE_DISPLAY_NAME_KEY, trimmed);
+      writeDashboardProfileDisplayName(trimmed);
     } catch {
       /* ignore */
     }
+    notifyDashboardProfileUpdated();
   }, []);
 
   const persistProfileAvatar = useCallback((src: string) => {
     setProfileAvatar(src);
     try {
-      window.localStorage.setItem(PROFILE_AVATAR_STORAGE_KEY, src);
+      writeDashboardProfileAvatarRaw(src);
     } catch {
       if (src.startsWith("data:")) {
         window.alert("Could not save this image (browser storage may be full). It may disappear after you reload.");
       }
     }
+    notifyDashboardProfileUpdated();
   }, []);
 
   const onProfileAvatarFile = useCallback(
@@ -1551,10 +1558,10 @@ export default function Page() {
 
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem(PROFILE_AVATAR_STORAGE_KEY);
-      if (saved) setProfileAvatar(saved);
-      const savedName = window.localStorage.getItem(PROFILE_DISPLAY_NAME_KEY);
-      if (savedName) setProfileName(savedName);
+      const saved = readDashboardProfileAvatarStorageRaw();
+      if (saved) setProfileAvatar(resolveDashboardAvatarDisplayUrl(saved));
+      else setProfileAvatar(DEFAULT_DASHBOARD_PROFILE_AVATAR);
+      setProfileName(readDashboardProfileDisplayName());
     } catch {
       /* ignore */
     }
@@ -2199,7 +2206,12 @@ export default function Page() {
       )}
     >
       <div className="hud-ambient-glow" aria-hidden="true" />
-      <div className="relative flex min-h-screen w-full max-w-[100vw] flex-col fluid-page-px fluid-page-pb lg:h-full lg:min-h-0">
+      <div
+        className={cn(
+          "relative flex min-h-screen w-full max-w-[100vw] flex-col fluid-page-px lg:h-full lg:min-h-0",
+          selectedNavKey === "monk" ? "pb-0" : "fluid-page-pb"
+        )}
+      >
         {/* Sticky shell has no GSAP transform; inner bar uses data-anim (transform breaks sticky on same node). */}
         <div className="sticky top-0 z-[60] w-full max-w-full shrink-0">
           <div
@@ -2662,7 +2674,7 @@ export default function Page() {
               (selectedNavKey === "monk" || selectedNavKey === "affiliate") &&
                 "syndicate-main-shell",
               selectedNavKey === "monk" || selectedNavKey === "affiliate"
-                ? "px-0 pt-1 pb-[var(--fluid-section-p)] sm:pt-1.5"
+                ? "px-0 pt-1 pb-0 sm:pt-1.5 sm:pb-0"
                 : "fluid-section-p"
             )}
           >

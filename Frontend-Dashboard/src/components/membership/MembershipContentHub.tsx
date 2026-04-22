@@ -72,7 +72,8 @@ export function MembershipContentHub() {
 
   const [articles, setArticles] = useState<ArticleDto[]>([]);
   const [videos, setVideos] = useState<VideoDto[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [articlesLoading, setArticlesLoading] = useState(false);
+  const [videosLoading, setVideosLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeVideo, setActiveVideo] = useState<VideoDto | null>(null);
   const [articleReader, setArticleReader] = useState<ArticleReaderState>(null);
@@ -120,13 +121,13 @@ export function MembershipContentHub() {
       );
       if (!ok) {
         setError(apiErrorMessage(status, data, "Could not load articles."));
-        setLoading(false);
+        setArticlesLoading(false);
         return;
       }
       const body = data as Paginated<ArticleDto>;
       setArticles((prev) => (append ? [...prev, ...body.results] : body.results));
       setArticleCount(typeof body.count === "number" ? body.count : null);
-      setLoading(false);
+      setArticlesLoading(false);
       setError(null);
     },
     [sort, dateFrom, dateTo, debouncedTitleSearch]
@@ -136,7 +137,7 @@ export function MembershipContentHub() {
     const { ok, data, status } = await portalFetch<Paginated<VideoDto>>("/api/portal/membership/secure-videos/?page=1");
     if (!ok) {
       setError(apiErrorMessage(status, data, "Could not load secure membership videos."));
-      setLoading(false);
+      setVideosLoading(false);
       return;
     }
     const body = data as Paginated<VideoDto>;
@@ -144,7 +145,7 @@ export function MembershipContentHub() {
     setVideos(mapped);
     setVideoCount(typeof body.count === "number" ? body.count : mapped.length);
     setError(null);
-    setLoading(false);
+    setVideosLoading(false);
   }, []);
 
   /** Refetch video rows without toggling global loading (playback finished / background poll). */
@@ -183,9 +184,9 @@ export function MembershipContentHub() {
     if (tab !== "articles") return;
     let cancelled = false;
     const run = async () => {
-      setLoading(true);
+      setArticlesLoading(true);
       if (sort === "newest" && !dateFrom && !dateTo && !debouncedTitleSearch.trim()) {
-        await autoGenerateBrief();
+        void autoGenerateBrief();
       }
       if (!cancelled) {
         await loadArticles(1, false);
@@ -199,7 +200,7 @@ export function MembershipContentHub() {
 
   useEffect(() => {
     if (tab !== "videos") return;
-    setLoading(true);
+    setVideosLoading(true);
     void loadVideos();
   }, [tab, loadVideos]);
 
@@ -362,7 +363,17 @@ export function MembershipContentHub() {
             </div>
           ) : null}
 
-          {loading && !articles.length ? (
+          {articlesLoading && articles.length > 0 ? (
+            <div
+              className="flex items-center gap-2 rounded-lg border border-cyan-400/25 bg-cyan-950/20 px-3 py-2 text-[11px] font-mono uppercase tracking-[0.14em] text-cyan-200/90"
+              aria-live="polite"
+            >
+              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.6)]" />
+              Refreshing archive…
+            </div>
+          ) : null}
+
+          {articlesLoading && !articles.length ? (
             <div className="relative overflow-hidden rounded-xl border border-amber-500/15 bg-black/40 py-16 text-center">
               <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_3px,rgba(34,211,238,0.03)_3px,rgba(34,211,238,0.03)_4px)]" />
               <p className="relative font-mono text-[13px] uppercase tracking-[0.2em] text-cyan-200/70">Decrypting archive…</p>
@@ -412,7 +423,7 @@ export function MembershipContentHub() {
             </p>
           </div>
 
-          <MembershipVideoGallery videos={videosToRender} loading={loading} error={error} onPlay={setActiveVideo} />
+          <MembershipVideoGallery videos={videosToRender} loading={videosLoading} error={error} onPlay={setActiveVideo} />
         </div>
       )}
 

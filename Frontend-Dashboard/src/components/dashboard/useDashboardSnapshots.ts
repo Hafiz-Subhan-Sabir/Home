@@ -1,4 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
+import {
+  fetchChallengesToday,
+  fetchSyndicateProgress,
+  type ChallengeRow
+} from "@/app/challenges/services/challengesApi";
+import { getSyndicateAuthToken } from "@/lib/syndicateAuth";
+import { getSyndicateDeviceId } from "@/lib/syndicateDeviceId";
+import {
+  challengeIsDone,
+  computeMissionBoardStats,
+  computeSyndicateRankFromPoints,
+  readSyndicatePointsTotal,
+  rowOnBoard
+} from "@/lib/syndicateHeroMetrics";
+import { applySyncedStateFromServer, SYNDICATE_DASHBOARD_REFRESH_EVENT } from "@/lib/syndicateProgressSync";
 import type {
   CoreIntegritySnapshot,
   DashboardSnapshots,
@@ -107,35 +122,32 @@ export function useDashboardSnapshots({
     const durationDays: 7 | 14 | 30 = durationNum === 7 || durationNum === 14 || durationNum === 30 ? durationNum : 14;
     const category = window.localStorage.getItem("dashboarded:syndicate-category") ?? "skills";
     const missionId = window.localStorage.getItem("dashboarded:syndicate-missionId");
-    const levelRaw = window.localStorage.getItem("dashboarded:syndicate-level");
-    const levelNum = levelRaw ? Number(levelRaw) : NaN;
-    const level = Number.isFinite(levelNum) ? Math.max(1, Math.floor(levelNum)) : durationDays === 7 ? 6 : durationDays === 14 ? 11 : 17;
-    const xpRaw = window.localStorage.getItem("dashboarded:syndicate-xp");
-    const xpNum = xpRaw ? Number(xpRaw) : NaN;
-    const xpPct = clampPct(Number.isFinite(xpNum) ? xpNum : seedNum(userName + category) % 60 + 20);
 
-    const activeMissionsPct = clampPct(
-      missionId ? 38 + (seedNum(userName + "am") % 52) : 12 + (seedNum(userName + "am") % 28)
-    );
-    const missedChallengesPct = clampPct(2 + (seedNum(userName + "missed") % 45));
+    const points = readSyndicatePointsTotal();
+    const rank = computeSyndicateRankFromPoints(points);
+    const mission = computeMissionBoardStats([], Date.now());
 
     const syndicate: SyndicateSnapshot = {
-      rankLabel: durationDays >= 30 ? "Diamond" : durationDays === 14 ? "Elite" : "Gold",
-      level,
-      xpPct,
-      streakDays: (seedNum(userName) % 9) + 3,
+      rankLabel: rank.rankLabel,
+      level: rank.syndicateLevel,
+      xpPct: rank.xpPct,
+      streakDays: 0,
       durationDays,
       category,
       activeMissionTitle: missionTitleFallback(missionId),
-      activeMissionsPct,
-      missedChallengesPct,
+      activeLiveMissionCount: mission.activeMissionCount,
+      activeMissionsPct: mission.activeMissionsPct,
+      missedChallengesPct: mission.missedChallengesPct,
       leaderboardPos: (seedNum(userName + "lb") % 87) + 1,
       nextRankChecklist: [
         "Complete 2 missions without skipping",
         "Maintain streak for 5 days",
         "Earn +25 XP from challenges",
         "Finish 1 focus-category mission"
-      ]
+      ],
+      missionPointsTotal: points,
+      nextRankLabel: rank.nextRankLabel,
+      pointsToNext: rank.pointsToNext
     };
 
     const referralLink =
@@ -277,18 +289,91 @@ export function useDashboardSnapshots({
     setHydrated(true);
   }, [courses, userName]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+
+    const pullSyndicateLive = async () => {
+      const token = getSyndicateAuthToken();
+      let streakDays = 0;
+      if (token) {
+        try {
+          const pr = await fetchSyndicateProgress();
+          if (cancelled) return;
+          applySyncedStateFromServer(pr.state ?? {});
+          streakDays = pr.streak_count ?? 0;
+        } catch {
+          /* offline */
+        }
+      }
+
+      const points = readSyndicatePointsTotal();
+      const rank = computeSyndicateRankFromPoints(points);
+      let rows: ChallengeRow[] = [];
+      try {
+        const td = await fetchChallengesToday(getSyndicateDeviceId());
+        if (cancelled) return;
+        rows = td.results ?? [];
+      } catch {
+        /* same-origin / device missions may still be in local storage */
+      }
+
+      const now = Date.now();
+      const mission = computeMissionBoardStats(rows, now);
+      const liveTitle = rows
+        .find((r) => rowOnBoard(r, now) && !challengeIsDone(r.id))
+        ?.payload?.challenge_title?.trim();
+
+      setSnap((prev) => {
+        if (!prev) return prev;
+        const fallbackMissionId = window.localStorage.getItem("dashboarded:syndicate-missionId");
+        return {
+          ...prev,
+          syndicate: {
+            ...prev.syndicate,
+            streakDays,
+            missionPointsTotal: points,
+            rankLabel: rank.rankLabel,
+            nextRankLabel: rank.nextRankLabel,
+            xpPct: rank.xpPct,
+            level: rank.syndicateLevel,
+            pointsToNext: rank.pointsToNext,
+            activeMissionsPct: mission.activeMissionsPct,
+            missedChallengesPct: mission.missedChallengesPct,
+            activeMissionTitle:
+              liveTitle && liveTitle.length > 0
+                ? liveTitle
+                : prev.syndicate.activeMissionTitle ?? missionTitleFallback(fallbackMissionId)
+          }
+        };
+      });
+    };
+
+    void pullSyndicateLive();
+    const onRefresh = () => void pullSyndicateLive();
+    window.addEventListener(SYNDICATE_DASHBOARD_REFRESH_EVENT, onRefresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(SYNDICATE_DASHBOARD_REFRESH_EVENT, onRefresh);
+    };
+  }, [courses, userName]);
+
   const snapshots = useMemo(() => {
     if (snap) return snap;
     // Pre-hydration fallback: avoid UI flicker and keep predictable shapes.
     const emptySyndicate: SyndicateSnapshot = {
-      rankLabel: "Elite",
-      level: 11,
-      xpPct: 42,
-      streakDays: 4,
+      rankLabel: "Recruit",
+      level: 0,
+      xpPct: 0,
+      streakDays: 0,
       durationDays: 14,
       activeMissionsPct: 0,
       missedChallengesPct: 0,
-      nextRankChecklist: []
+      activeLiveMissionCount: 0,
+      nextRankChecklist: [],
+      missionPointsTotal: 0,
+      nextRankLabel: "Bronze",
+      pointsToNext: 20
     };
     const empty: DashboardSnapshots = {
       programs: [],

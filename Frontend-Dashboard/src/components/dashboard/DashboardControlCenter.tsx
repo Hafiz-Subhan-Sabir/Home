@@ -67,194 +67,213 @@ function SyndicateMissionsSnapshotCard({
   const primaryMission = useMemo(() => pickPrimaryMission(rows), [rows]);
   const primaryReminder = useMemo(() => pickPrimaryReminder(rows, Date.now()), [rows, reminderTick]);
 
-  const headerActions = (
-    <div className="flex items-center gap-2">
-      <motion.button
-        type="button"
-        onClick={() => refresh()}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.98 }}
-        className="text-[12px] font-black uppercase tracking-[0.12em] text-cyan-200/85 hover:text-cyan-100/95"
-      >
-        Refresh
-      </motion.button>
-      <motion.button
-        type="button"
-        onClick={() => onNavigate("monk")}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.98 }}
-        className="text-[12px] font-black uppercase tracking-[0.12em] text-[color:var(--gold)]/92"
-      >
-        Syndicate →
-      </motion.button>
-    </div>
-  );
+  const ta = themeAccent(themeMode);
 
   return (
-    <div className="space-y-4">
-      <div
-        className="cut-frame cyber-frame gold-stroke relative overflow-hidden rounded-lg border border-[rgba(197,179,88,0.28)] bg-[#060606]/80 px-4 py-4 sm:px-5 sm:py-5 md:px-6 md:py-6"
-        style={{ boxShadow: `0 0 0 1px rgba(197,179,88,0.08), 0 0 40px ${themeAccent(themeMode).glow}` }}
-      >
-        <div className="pointer-events-none absolute inset-0 opacity-80 [background:radial-gradient(720px_280px_at_12%_0%,rgba(0,255,255,0.09),rgba(0,0,0,0)_55%)]" />
-        <div className="relative flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+    <motion.section
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.24, ease: "easeOut" }}
+      className="relative overflow-hidden rounded-2xl border border-cyan-400/22 bg-[#050607] p-[1px] shadow-[0_0_0_1px_rgba(250,204,21,0.07),0_24px_70px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.04)]"
+      style={{ boxShadow: `0 0 0 1px rgba(34,211,238,0.12), 0 28px 80px rgba(0,0,0,0.5), 0 0 48px ${ta.glow}` }}
+      aria-labelledby="syndicate-dashboard-snapshot-title"
+    >
+      <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-[0.95] [background:radial-gradient(720px_420px_at_0%_-10%,rgba(34,211,238,0.14),transparent_55%),radial-gradient(560px_380px_at_100%_0%,rgba(250,204,21,0.09),transparent_52%)]" />
+      <div className="relative rounded-[15px] border border-white/[0.07] bg-gradient-to-b from-[#0b0d12]/95 to-[#050505]/98 px-4 py-5 sm:px-6 sm:py-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
           <div className="min-w-0 flex-1">
-            <h3 className="font-mono text-[clamp(1.05rem,2.1vw+0.6rem,1.55rem)] font-black uppercase italic tracking-[0.06em] text-[color:var(--gold)]/95 drop-shadow-[0_0_18px_rgba(250,204,21,0.22)]">
-              Syndicate Mode
-            </h3>
-            <p className="mt-2 max-w-[52rem] text-[clamp(0.9rem,1.2vw+0.65rem,1.15rem)] font-semibold leading-relaxed text-white/78">
-              Build <span className="text-cyan-200/90">streaks</span>, unlock <span className="text-[color:var(--gold)]/90">levels</span>, and{" "}
-              <span className="text-emerald-200/88">earn points</span> to unlock programs and keep your edge on the board.
+            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+              <h3
+                id="syndicate-dashboard-snapshot-title"
+                className="font-mono text-[clamp(1.05rem,2vw+0.55rem,1.45rem)] font-black uppercase italic tracking-[0.07em] text-[color:var(--gold)]/95 drop-shadow-[0_0_20px_rgba(250,204,21,0.2)]"
+              >
+                Syndicate Mode
+              </h3>
+              {rows.length > 0 ? (
+                <span className="rounded-full border border-cyan-400/35 bg-cyan-500/[0.12] px-2.5 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-cyan-100/90">
+                  Board active
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-2 max-w-[46rem] text-[clamp(0.82rem,1vw+0.62rem,1.02rem)] font-medium leading-relaxed text-white/72">
+              Build <span className="font-semibold text-cyan-200/92">streaks</span>, unlock{" "}
+              <span className="font-semibold text-[color:var(--gold)]/90">levels</span>, and{" "}
+              <span className="font-semibold text-emerald-200/88">earn points</span> — then keep your edge on the 24h board.
             </p>
             {!apiReached && rows.length > 0 ? (
-              <p className="mt-2 text-[13px] text-amber-200/75">Board sync limited — showing what’s saved on this device.</p>
+              <p className="mt-2 text-[12px] text-amber-200/78">Board sync limited — showing what’s saved on this device.</p>
             ) : null}
           </div>
-          <div className="shrink-0 pt-1 sm:pt-0">{headerActions}</div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">
+            <motion.button
+              type="button"
+              onClick={() => refresh()}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              className="rounded-lg border border-cyan-400/35 bg-cyan-500/[0.1] px-3 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-cyan-100/92 shadow-[0_0_20px_rgba(34,211,238,0.12)] hover:border-cyan-300/55"
+            >
+              Refresh
+            </motion.button>
+            <motion.button
+              type="button"
+              onClick={() => onNavigate("monk")}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              className="rounded-lg border border-[rgba(250,204,21,0.42)] bg-[rgba(250,204,21,0.08)] px-3 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-[color:var(--gold)]/95 hover:border-[rgba(250,204,21,0.62)]"
+            >
+              Open mode →
+            </motion.button>
+          </div>
         </div>
-      </div>
 
-      {loading && rows.length === 0 ? (
-        <div className="grid gap-4 md:grid-cols-2" aria-busy>
-          <div className="h-48 animate-pulse rounded-lg bg-white/8" />
-          <div className="h-48 animate-pulse rounded-lg bg-white/8" />
-        </div>
-      ) : null}
+        {loading && rows.length === 0 ? (
+          <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(240px,320px)]" aria-busy>
+            <div className="h-52 animate-pulse rounded-xl bg-white/[0.06]" />
+            <div className="h-52 animate-pulse rounded-xl bg-white/[0.06] lg:h-auto" />
+          </div>
+        ) : null}
 
-      {!loading && error && rows.length === 0 ? (
-        <div className="rounded-lg border border-red-500/25 bg-red-950/25 px-4 py-4 text-[15px] text-red-200/90">
-          {error}
-          <button
-            type="button"
-            onClick={() => refresh()}
-            className="mt-3 block text-[13px] font-black uppercase tracking-[0.14em] text-[color:var(--gold)]/95 underline-offset-2 hover:underline"
-          >
-            Try again
-          </button>
-        </div>
-      ) : null}
+        {!loading && error && rows.length === 0 ? (
+          <div className="mt-6 rounded-xl border border-red-500/28 bg-red-950/20 px-4 py-4 text-[14px] text-red-200/90">
+            {error}
+            <button
+              type="button"
+              onClick={() => refresh()}
+              className="mt-3 block text-[12px] font-black uppercase tracking-[0.14em] text-[color:var(--gold)]/95 underline-offset-2 hover:underline"
+            >
+              Try again
+            </button>
+          </div>
+        ) : null}
 
-      {!loading && (rows.length > 0 || (!error && rows.length === 0)) ? (
-        <div className="grid gap-4 md:grid-cols-2 md:items-stretch">
-          <Card
-            themeMode={themeMode}
-            title="Mission"
-            accentKey="monk"
-            frameVariant="shell"
-            right={<Target className="h-5 w-5 text-cyan-300/80" aria-hidden />}
-          >
-            {primaryMission ? (
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-[12px] font-bold text-white/40">#{primaryMission.id}</span>
-                  {primaryMission.completed ? (
-                    <span className="rounded border border-white/18 bg-white/8 px-2 py-0.5 text-[11px] font-black uppercase tracking-[0.12em] text-white/55">
-                      Completed
-                    </span>
-                  ) : null}
-                </div>
-                <h4
-                  className={cn(
-                    "text-[clamp(1.05rem,1.4vw+0.85rem,1.35rem)] font-bold leading-snug text-white/94",
-                    primaryMission.completed && "line-through decoration-white/35"
-                  )}
-                >
-                  {primaryMission.title}
-                </h4>
-                {primaryMission.subtitle ? (
-                  <p className="text-[clamp(0.88rem,0.9vw+0.65rem,1.02rem)] leading-relaxed text-white/62">{primaryMission.subtitle}</p>
-                ) : null}
-                <div className="flex flex-wrap gap-2">
-                  <span className="rounded-md border border-white/16 bg-black/40 px-2 py-1 text-[12px] font-bold uppercase tracking-[0.1em] text-white/60">
-                    {primaryMission.mood}
-                  </span>
-                  <span className="rounded-md border border-white/16 bg-black/40 px-2 py-1 text-[12px] font-bold uppercase tracking-[0.1em] text-white/60">
-                    {primaryMission.category}
-                  </span>
-                  {primaryMission.difficulty && primaryMission.difficulty !== "—" ? (
-                    <span
+        {!loading && (rows.length > 0 || (!error && rows.length === 0)) ? (
+          <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,340px)] lg:items-stretch">
+            {/* Mission — primary column */}
+            <div className="flex min-h-0 flex-col rounded-xl border border-cyan-500/22 bg-black/45 p-4 shadow-[inset_0_1px_0_rgba(34,211,238,0.12)] sm:p-5">
+              <div className="flex items-center justify-between gap-3 border-b border-cyan-400/15 pb-3">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-200/75">Mission</span>
+                <Target className="h-5 w-5 shrink-0 text-cyan-300/75" aria-hidden />
+              </div>
+              <div className="min-h-0 flex-1 pt-4">
+                {primaryMission ? (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-[11px] font-bold text-white/38">#{primaryMission.id}</span>
+                      {primaryMission.completed ? (
+                        <span className="rounded border border-white/16 bg-white/[0.06] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-white/50">
+                          Completed
+                        </span>
+                      ) : null}
+                    </div>
+                    <h4
                       className={cn(
-                        "rounded-md border px-2 py-1 text-[12px] font-black uppercase tracking-[0.1em]",
-                        syndicateDifficultyChipClass(primaryMission.difficulty)
+                        "text-[clamp(1rem,1.3vw+0.78rem,1.28rem)] font-bold leading-snug text-white/93",
+                        primaryMission.completed && "line-through decoration-white/35"
                       )}
                     >
-                      {primaryMission.difficulty}
-                    </span>
-                  ) : null}
-                  {primaryMission.onBoard ? (
-                    <span className="rounded-md border border-cyan-500/40 bg-cyan-500/14 px-2 py-1 text-[12px] font-black uppercase tracking-[0.1em] text-cyan-100/88">
-                      On 24h board
-                    </span>
-                  ) : (
-                    <span className="rounded-md border border-white/12 bg-black/30 px-2 py-1 text-[12px] font-black uppercase tracking-[0.1em] text-white/40">
-                      Off board
-                    </span>
-                  )}
-                  {primaryMission.points > 0 ? (
-                    <span className="text-[13px] font-black uppercase tracking-[0.08em] text-[color:var(--gold)]/85">+{primaryMission.points} pts</span>
-                  ) : null}
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-lg border border-dashed border-white/14 bg-black/35 px-3 py-5 text-center">
-                <p className="text-[clamp(0.95rem,1vw+0.7rem,1.08rem)] font-semibold text-white/65">No mission on your board right now.</p>
-                <p className="mt-2 text-[15px] text-white/45">Open Syndicate Mode to load today’s missions.</p>
-              </div>
-            )}
-          </Card>
-
-          <Card
-            themeMode={themeMode}
-            title="Reminder"
-            accentKey="monk"
-            frameVariant="shell"
-            right={<Bell className="h-5 w-5 text-cyan-300/85" aria-hidden />}
-          >
-            {primaryReminder && primaryReminder.reminderAtMs != null && primaryReminder.reminderAtMs > Date.now() ? (
-              <div className="flex flex-col gap-4 rounded-lg border border-cyan-400/35 bg-gradient-to-b from-cyan-500/14 via-black/40 to-transparent px-4 py-5">
-                <div>
-                  <div className="text-[12px] font-black uppercase tracking-[0.18em] text-cyan-200/88">Next up</div>
-                  <p className="mt-2 text-[clamp(1rem,1.2vw+0.75rem,1.2rem)] font-bold leading-snug text-white/90">{primaryReminder.title}</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-cyan-400/45 bg-cyan-500/18">
-                    <Bell className="h-6 w-6 text-cyan-100" aria-hidden />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-[13px] font-black uppercase tracking-[0.14em] text-cyan-200/85">Rings in</div>
-                    <div className="mt-1 font-mono text-[clamp(1.45rem,2.4vw+0.9rem,2.1rem)] font-black tabular-nums leading-none text-cyan-50">
-                      {formatSyndicateReminderCountdown(primaryReminder.reminderAtMs, Date.now())}
+                      {primaryMission.title}
+                    </h4>
+                    {primaryMission.subtitle ? (
+                      <p className="text-[clamp(0.85rem,0.85vw+0.62rem,0.98rem)] leading-relaxed text-white/58">
+                        {primaryMission.subtitle}
+                      </p>
+                    ) : null}
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <span className="rounded-md border border-white/14 bg-black/35 px-2 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-white/55">
+                        {primaryMission.mood}
+                      </span>
+                      <span className="rounded-md border border-white/14 bg-black/35 px-2 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-white/55">
+                        {primaryMission.category}
+                      </span>
+                      {primaryMission.difficulty && primaryMission.difficulty !== "—" ? (
+                        <span
+                          className={cn(
+                            "rounded-md border px-2 py-1 text-[11px] font-black uppercase tracking-[0.1em]",
+                            syndicateDifficultyChipClass(primaryMission.difficulty)
+                          )}
+                        >
+                          {primaryMission.difficulty}
+                        </span>
+                      ) : null}
+                      {primaryMission.onBoard ? (
+                        <span className="rounded-md border border-cyan-500/38 bg-cyan-500/12 px-2 py-1 text-[11px] font-black uppercase tracking-[0.1em] text-cyan-100/85">
+                          On 24h board
+                        </span>
+                      ) : (
+                        <span className="rounded-md border border-white/10 bg-black/25 px-2 py-1 text-[11px] font-black uppercase tracking-[0.1em] text-white/38">
+                          Off board
+                        </span>
+                      )}
+                      {primaryMission.points > 0 ? (
+                        <span className="self-center text-[12px] font-black uppercase tracking-[0.08em] text-[color:var(--gold)]/88">
+                          +{primaryMission.points} pts
+                        </span>
+                      ) : null}
                     </div>
-                    <div className="mt-2 text-[clamp(0.9rem,0.85vw+0.65rem,1.05rem)] text-white/55">{formatSyndicateReminderWhen(primaryReminder.reminderAtMs)}</div>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex min-h-[180px] flex-col items-center justify-center rounded-lg border border-dashed border-white/12 bg-black/30 px-3 py-6 text-center">
+                    <p className="text-[clamp(0.9rem,0.95vw+0.65rem,1.02rem)] font-semibold text-white/62">No mission on your board right now.</p>
+                    <p className="mt-2 max-w-sm text-[13px] text-white/42">Open Syndicate Mode to pull today’s missions onto the board.</p>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="rounded-lg border border-dashed border-white/14 bg-black/35 px-3 py-5 text-center">
-                <p className="text-[clamp(0.95rem,1vw+0.7rem,1.08rem)] font-semibold text-white/65">No reminder scheduled.</p>
-                <p className="mt-2 text-[15px] text-white/45">Set one on a mission card in Syndicate Mode.</p>
+            </div>
+
+            {/* Reminder — secondary column */}
+            <div className="flex min-h-0 flex-col rounded-xl border border-amber-400/18 bg-[#070605]/90 p-4 shadow-[inset_0_1px_0_rgba(250,204,21,0.08)] sm:p-5">
+              <div className="flex items-center justify-between gap-3 border-b border-amber-400/12 pb-3">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-200/70">Reminder</span>
+                <Bell className="h-5 w-5 shrink-0 text-amber-200/65" aria-hidden />
               </div>
-            )}
-          </Card>
-        </div>
-      ) : null}
+              <div className="min-h-0 flex-1 pt-4">
+                {primaryReminder && primaryReminder.reminderAtMs != null && primaryReminder.reminderAtMs > Date.now() ? (
+                  <div className="flex flex-col gap-3 rounded-lg border border-cyan-400/28 bg-gradient-to-b from-cyan-500/12 via-black/35 to-transparent px-3 py-4 sm:px-4 sm:py-5">
+                    <div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200/82">Next up</div>
+                      <p className="mt-2 text-[clamp(0.95rem,1.1vw+0.72rem,1.12rem)] font-bold leading-snug text-white/90">{primaryReminder.title}</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-cyan-400/40 bg-cyan-500/15">
+                        <Bell className="h-5 w-5 text-cyan-100/95" aria-hidden />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-black uppercase tracking-[0.14em] text-cyan-200/80">Rings in</div>
+                        <div className="mt-1 font-mono text-[clamp(1.25rem,2vw+0.85rem,1.85rem)] font-black tabular-nums leading-none text-cyan-50">
+                          {formatSyndicateReminderCountdown(primaryReminder.reminderAtMs, Date.now())}
+                        </div>
+                        <div className="mt-2 text-[12px] text-white/52">{formatSyndicateReminderWhen(primaryReminder.reminderAtMs)}</div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex min-h-[180px] flex-col items-center justify-center rounded-lg border border-dashed border-white/12 bg-black/30 px-3 py-6 text-center">
+                    <p className="text-[clamp(0.9rem,0.95vw+0.65rem,1.02rem)] font-semibold text-white/62">No reminder scheduled.</p>
+                    <p className="mt-2 max-w-sm text-[13px] text-white/42">Set one on a mission card inside Syndicate Mode.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : null}
 
-      {!loading && rows.length === 0 && !error ? (
-        <motion.button
-          type="button"
-          onClick={() => onNavigate("monk")}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="w-full rounded-lg border border-cyan-400/45 bg-cyan-500/16 py-3.5 text-[14px] font-black uppercase tracking-[0.16em] text-cyan-50/95 hover:border-cyan-300/60 md:w-auto md:px-10"
-        >
-          Open Syndicate Mode
-        </motion.button>
-      ) : null}
+        {!loading && rows.length === 0 && !error ? (
+          <motion.button
+            type="button"
+            onClick={() => onNavigate("monk")}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="mt-6 w-full rounded-xl border border-cyan-400/40 bg-cyan-500/14 py-3.5 text-[13px] font-black uppercase tracking-[0.16em] text-cyan-50/95 hover:border-cyan-300/55 md:w-auto md:px-12"
+          >
+            Open Syndicate Mode
+          </motion.button>
+        ) : null}
 
-      {!loading && rows.length > 0 && !linkedAccount ? (
-        <p className="text-[13px] leading-relaxed text-white/48">Sign in from Syndicate Mode to sync missions and reminders across devices.</p>
-      ) : null}
-    </div>
+        {!loading && rows.length > 0 && !linkedAccount ? (
+          <p className="mt-4 text-[12px] leading-relaxed text-white/45">Sign in from Syndicate Mode to sync missions and reminders across devices.</p>
+        ) : null}
+      </div>
+    </motion.section>
   );
 }
 
@@ -372,7 +391,7 @@ function HeroStatusPanel({
   const ongoingPrograms = s.programs.length;
   const programsAvgPct =
     s.programs.length > 0 ? Math.round(s.programs.reduce((acc, p) => acc + p.progressPct, 0) / s.programs.length) : 0;
-  const activeMissionCount = s.syndicate.activeMissionTitle ? 1 : 0;
+  const activeMissionCount = s.syndicate.activeLiveMissionCount ?? (s.syndicate.activeMissionTitle ? 1 : 0);
   const missionsPct = s.syndicate.activeMissionsPct;
   const missedPct = s.syndicate.missedChallengesPct;
   return (
@@ -403,10 +422,24 @@ function HeroStatusPanel({
                   <path d="M12 3.8l6.2 3.6v7.2L12 18.2l-6.2-3.6V7.4L12 3.8Z" stroke="currentColor" strokeWidth="1.6" />
                   <path d="M7.8 9.2h8.4M7.8 12h6.2M7.8 14.8h8.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity="0.8" />
                 </svg>
-                <span className="font-mono text-[10px] font-black uppercase tracking-[0.16em] text-white/35">Diamond</span>
-                <div className="pointer-events-none absolute left-1/2 top-[calc(100%+10px)] z-50 hidden w-[260px] -translate-x-1/2 rounded-md border border-white/10 bg-black/90 p-2 text-[11px] text-white/70 shadow-[0_0_28px_rgba(168,85,247,0.18)] group-hover:block">
-                  <div className="font-mono text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-200/85">Future state</div>
-                  <div className="mt-1">Sync remaining <span className="font-mono font-black text-white/90">28%</span> XP to unlock Diamond-tier HUD.</div>
+                <span className="font-mono text-[10px] font-black uppercase tracking-[0.16em] text-cyan-200/85">
+                  {s.syndicate.nextRankLabel ?? "—"}
+                </span>
+                <div className="pointer-events-none absolute left-1/2 top-[calc(100%+10px)] z-50 hidden w-[280px] -translate-x-1/2 rounded-md border border-white/10 bg-black/90 p-2 text-[11px] text-white/70 shadow-[0_0_28px_rgba(34,211,238,0.18)] group-hover:block">
+                  <div className="font-mono text-[10px] font-black uppercase tracking-[0.16em] text-cyan-200/85">Syndicate rewards</div>
+                  <div className="mt-1">
+                    {typeof s.syndicate.pointsToNext === "number" && s.syndicate.pointsToNext > 0 ? (
+                      <>
+                        Earn <span className="font-mono font-black text-white/90">{s.syndicate.pointsToNext}</span> more mission
+                        {s.syndicate.pointsToNext === 1 ? " point" : " points"} to reach{" "}
+                        <span className="text-cyan-200/90">{s.syndicate.nextRankLabel}</span> (same ladder as Unlock &amp; redeem).
+                      </>
+                    ) : s.syndicate.pointsToNext === 0 ? (
+                      <>You have cleared every mission-points tier in the current ladder.</>
+                    ) : (
+                      <>Complete missions in Syndicate Mode to advance the rewards ladder.</>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">Next rank preview</div>
@@ -481,7 +514,7 @@ function HeroStatusPanel({
             </button>
             <button
               type="button"
-              onClick={() => onNavigate("affiliate")}
+              onClick={() => onNavigate("monk")}
               className="rounded-md border bg-black/40 px-3 py-2 text-left hover:bg-black/65"
               style={{
                 borderColor: accentByKey("affiliate").border,
@@ -489,7 +522,9 @@ function HeroStatusPanel({
               }}
             >
               <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/70">Mission points</div>
-              <div className="mt-1 font-mono text-[14px] font-black tabular-nums text-white/92">{s.affiliate.earnings}</div>
+              <div className="mt-1 font-mono text-[14px] font-black tabular-nums text-white/92">
+                {s.syndicate.missionPointsTotal ?? 0}
+              </div>
             </button>
           </div>
         </div>
@@ -969,9 +1004,9 @@ export default function DashboardControlCenter({
             onNavigate={onNavigate}
           />
 
-          <SyndicateMissionsSnapshotCard themeMode={themeMode} onNavigate={onNavigate} />
-
           <MissionCommandDeckCard themeMode={themeMode} />
+
+          <SyndicateMissionsSnapshotCard themeMode={themeMode} onNavigate={onNavigate} />
 
           <GoalPathSystem themeMode={themeMode} courses={courses} onNavigate={onNavigate} />
 

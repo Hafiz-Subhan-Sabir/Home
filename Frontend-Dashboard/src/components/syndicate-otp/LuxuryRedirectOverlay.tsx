@@ -17,7 +17,7 @@ export default function LuxuryRedirectOverlay({
     if (!active) return;
     const target = href?.trim() || FALLBACK_URL;
     const timer = window.setTimeout(() => {
-      window.location.href = target;
+      window.location.replace(target);
     }, 2600);
     return () => window.clearTimeout(timer);
   }, [active, href]);

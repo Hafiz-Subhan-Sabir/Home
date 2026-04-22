@@ -4,6 +4,10 @@
  */
 import { patchSyndicateProgress } from "@/app/challenges/services/challengesApi";
 import { getSyndicateAuthToken } from "@/lib/syndicateAuth";
+import {
+  readDashboardProfileAvatarStorageRaw,
+  readDashboardProfileDisplayName
+} from "@/lib/dashboardProfileStorage";
 import { syndicateUserStorageKey as ls } from "@/lib/syndicateStorageKeys";
 
 /** Mirrors Backend `SYNDICATE_ALLOWED_STATE_KEYS` and excludes per-browser `device_id`. */
@@ -116,4 +120,33 @@ export function onSyndicatePersist() {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(SYNDICATE_DASHBOARD_REFRESH_EVENT));
   }
+}
+
+const MAX_PROFILE_IMAGE_FOR_LS_SYNC = 350_000;
+
+/** Keep server-synced syndicate keys aligned with the main shell profile (header). */
+export function mirrorShellProfileIntoSyndicateStorage() {
+  if (typeof window === "undefined") return;
+  const name = readDashboardProfileDisplayName();
+  window.localStorage.setItem(ls("display_name"), name);
+  const raw = readDashboardProfileAvatarStorageRaw();
+  const t = raw.trim();
+  let storable: string | null = null;
+  if (t) {
+    if (t.startsWith("data:image/")) {
+      if (t.length <= MAX_PROFILE_IMAGE_FOR_LS_SYNC) storable = t;
+    } else if (t.startsWith("/")) {
+      if (t.length <= 2048) storable = t;
+    } else {
+      try {
+        const u = new URL(t);
+        if ((u.protocol === "http:" || u.protocol === "https:") && t.length <= 2048) storable = t;
+      } catch {
+        storable = null;
+      }
+    }
+  }
+  if (storable) window.localStorage.setItem(ls("profile_image_url"), storable);
+  else window.localStorage.removeItem(ls("profile_image_url"));
+  onSyndicatePersist();
 }

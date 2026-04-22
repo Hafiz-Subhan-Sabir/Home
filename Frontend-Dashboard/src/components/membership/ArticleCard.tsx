@@ -76,6 +76,7 @@ export function ArticleCard({ article, featured, index = 0, onOpenPdf, onOpenWeb
       <div className="relative z-[1] h-[3px] w-full bg-cyan-300/75" />
       <Link
         href={detailHref}
+        prefetch
         className="relative z-[1] flex min-h-0 flex-1 flex-col p-6 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
       >
         <div className="mb-3 flex items-center justify-between gap-2">

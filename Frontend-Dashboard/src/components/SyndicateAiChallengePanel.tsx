@@ -41,15 +41,23 @@ import {
   type MissionScoreResponse
 } from "@/app/challenges/services/challengesApi";
 import type { ChallengeRow } from "@/app/challenges/services/challengesApi";
+import { getSyndicateAuthHeaders, getSyndicateAuthToken, getSyndicateUser } from "@/lib/syndicateAuth";
 import {
-  getSyndicateAuthHeaders,
-  getSyndicateAuthToken,
-  getSyndicateProfileAvatarUrl,
-  getSyndicateUser
-} from "@/lib/syndicateAuth";
-import { applySyncedStateFromServer, collectSyncedState, onSyndicatePersist } from "@/lib/syndicateProgressSync";
+  applySyncedStateFromServer,
+  collectSyncedState,
+  mirrorShellProfileIntoSyndicateStorage,
+  onSyndicatePersist
+} from "@/lib/syndicateProgressSync";
 import { getSyndicateApiBase } from "@/lib/syndicateApiBase";
-import { displayNameFromEmail } from "@/lib/dashboardProfileStorage";
+import {
+  DASHBOARD_PROFILE_UPDATED_EVENT,
+  DEFAULT_DASHBOARD_PROFILE_NAME,
+  PROFILE_AVATAR_STORAGE_KEY,
+  PROFILE_DISPLAY_NAME_KEY,
+  readDashboardProfileAvatarStorageRaw,
+  readDashboardProfileDisplayName,
+  resolveDashboardAvatarDisplayUrl
+} from "@/lib/dashboardProfileStorage";
 import { syndicateUserStorageKey as ls } from "@/lib/syndicateStorageKeys";
 
 const API_BASE = getSyndicateApiBase();
@@ -300,40 +308,6 @@ const CREATE_MISSION_DAILY_LIMIT_MSG = `Maximum ${MAX_CUSTOM_COMPLETIONS_PER_DAY
 const CUSTOM_MISSION_DEFAULT_DIFFICULTY = "medium" as const;
 const POINTS_PER_10_POUNDS = 100;
 const POUNDS_PER_100_POINTS = 10;
-const DEFAULT_PROFILE_NAME = "Operator";
-
-function syndicateShellDisplayName(profileName: string): string {
-  const p = profileName.trim();
-  if (p) return p;
-  const u = getSyndicateUser();
-  const e = u?.email?.trim();
-  if (e) return displayNameFromEmail(e) || u?.name?.trim() || DEFAULT_PROFILE_NAME;
-  return u?.name?.trim() || DEFAULT_PROFILE_NAME;
-}
-
-const MAX_PROFILE_IMAGE_DATA_URL_CHARS = 350_000;
-const MAX_PROFILE_IMAGE_URL_LEN = 2048;
-const MAX_PROFILE_IMAGE_FILE_BYTES = 280 * 1024;
-
-function isValidProfileImageValue(s: string): boolean {
-  const t = s.trim();
-  if (!t) return true;
-  if (t.length > MAX_PROFILE_IMAGE_DATA_URL_CHARS) return false;
-  if (t.startsWith("data:image/")) return true;
-  if (t.length > MAX_PROFILE_IMAGE_URL_LEN) return false;
-  try {
-    const u = new URL(t);
-    return u.protocol === "http:" || u.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
-function avatarFromSavedProfileImage(saved: string, fallback: string): string {
-  const t = saved.trim();
-  if (!t || !isValidProfileImageValue(t)) return fallback;
-  return t;
-}
 
 const CTA_BTN =
   "syndicate-hud-cta rounded-md border border-[#eab308] bg-[linear-gradient(180deg,#fef08a_0%,#fde047_46%,#eab308_100%)] text-black [box-shadow:inset_0_1px_0_rgba(255,252,220,0.88),inset_0_-2px_0_rgba(161,98,7,0.55),0_0_16px_rgba(253,224,71,0.45)] hover:brightness-110";
@@ -1692,10 +1666,8 @@ function DetailPane({
       ? Math.max(0, Math.floor((nowMs - taskTimerStartMs) / 1000))
       : 0;
 
-  useEffect(() => {
-    setHow(initialResponse.how);
-    setLearned(initialResponse.learned);
-  }, [initialResponse.how, initialResponse.learned, row.id]);
+  // Keep local textarea state stable while typing. Re-syncing from storage on every parent
+  // render (e.g. timer ticks) can wipe in-progress edits before debounce persistence runs.
 
   useEffect(() => {
     if (readOnlyCompleted || !onDraftPersist) return;
@@ -2114,10 +2086,19 @@ export function SyndicateAiChallengePanel() {
   const [createMissionModalOpen, setCreateMissionModalOpen] = useState(false);
   /** Shown inside the create-mission modal (global `error` sits under the overlay and is easy to miss). */
   const [createMissionError, setCreateMissionError] = useState<string | null>(null);
-  const [profileName, setProfileName] = useState(DEFAULT_PROFILE_NAME);
-  const [profileImageSaved, setProfileImageSaved] = useState("");
-  const [profileImageDraft, setProfileImageDraft] = useState("");
-  const [profileSettingsMsg, setProfileSettingsMsg] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState(() =>
+    typeof window === "undefined" ? DEFAULT_DASHBOARD_PROFILE_NAME : readDashboardProfileDisplayName()
+  );
+  const [profileAvatarRaw, setProfileAvatarRaw] = useState(() =>
+    typeof window === "undefined" ? "" : readDashboardProfileAvatarStorageRaw()
+  );
+
+  const refreshFromShellProfile = useCallback(() => {
+    if (typeof window === "undefined") return;
+    setProfileName(readDashboardProfileDisplayName());
+    setProfileAvatarRaw(readDashboardProfileAvatarStorageRaw());
+    mirrorShellProfileIntoSyndicateStorage();
+  }, []);
   const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([]);
   const [leaderboardErr, setLeaderboardErr] = useState<string | null>(null);
   const [challengeLogVersion, setChallengeLogVersion] = useState(0);
@@ -2193,63 +2174,6 @@ export function SyndicateAiChallengePanel() {
     }
   }, []);
 
-  const saveProfile = useCallback(() => {
-    const accountEmail = getSyndicateUser()?.email?.trim() || "";
-    const n = profileName.trim() || accountEmail || "Anonymous";
-    const img = profileImageDraft.trim();
-    if (img && !isValidProfileImageValue(img)) {
-      setProfileSettingsMsg("Use an https image link, or upload a smaller image (under 280 KB).");
-      return;
-    }
-    setProfileSettingsMsg(null);
-    window.localStorage.setItem(ls("display_name"), n);
-    setProfileName(n);
-    if (img) {
-      window.localStorage.setItem(ls("profile_image_url"), img);
-      setProfileImageSaved(img);
-    } else {
-      window.localStorage.removeItem(ls("profile_image_url"));
-      setProfileImageSaved("");
-    }
-    onSyndicatePersist();
-    void syncLeaderboard(pointsTotal, n);
-    setShowStatsProfile(false);
-    setSyndicateView("dashboard");
-    scrollSyndicateShellToTop();
-  }, [profileName, profileImageDraft, pointsTotal]);
-
-  const clearProfilePhoto = useCallback(() => {
-    setProfileSettingsMsg(null);
-    setProfileImageDraft("");
-    setProfileImageSaved("");
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem(ls("profile_image_url"));
-    }
-    onSyndicatePersist();
-  }, []);
-
-  const onProfileImageFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    if (f.size > MAX_PROFILE_IMAGE_FILE_BYTES) {
-      setProfileSettingsMsg("Choose an image under 280 KB, or paste an image URL.");
-      e.target.value = "";
-      return;
-    }
-    setProfileSettingsMsg(null);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const data = String(reader.result || "");
-      if (data.length > MAX_PROFILE_IMAGE_DATA_URL_CHARS) {
-        setProfileSettingsMsg("That image is too large. Try a smaller file or a URL.");
-        return;
-      }
-      setProfileImageDraft(data);
-    };
-    reader.readAsDataURL(f);
-    e.target.value = "";
-  }, []);
-
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -2285,28 +2209,13 @@ export function SyndicateAiChallengePanel() {
       setRedeemedRewards(loadRedeemedRewards());
       setPoundsBalance(loadPoundsBalance());
       if (typeof window !== "undefined") {
-        const savedName = window.localStorage.getItem(ls("display_name"));
-        const sessionUser = getSyndicateUser();
-        const accountEmail = (sessionUser?.email || "").trim();
-        const sessionName = (sessionUser?.name || "").trim();
-        const fromEmail = accountEmail ? displayNameFromEmail(accountEmail) : "";
-        const nextName =
-          (savedName?.trim() || sessionName || fromEmail || DEFAULT_PROFILE_NAME).trim() ||
-          DEFAULT_PROFILE_NAME;
-        setProfileName(nextName);
-        if (!savedName?.trim() && (sessionName || fromEmail)) {
-          window.localStorage.setItem(ls("display_name"), nextName);
-          onSyndicatePersist();
-        }
-        const imgRaw = window.localStorage.getItem(ls("profile_image_url")) || "";
-        setProfileImageSaved(imgRaw);
-        setProfileImageDraft(imgRaw);
+        refreshFromShellProfile();
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshFromShellProfile]);
 
   useEffect(() => {
     adminTaskDraftsRef.current = adminTaskDrafts;
@@ -2335,6 +2244,7 @@ export function SyndicateAiChallengePanel() {
         setStreak(res.streak_count);
         setLastActivityIso(res.last_activity_date);
         setStreakBeforeBreakHint(streakBeforeBreakHintForProgress(res.streak_count, res.state));
+        refreshFromShellProfile();
       } catch {
         /* offline */
       }
@@ -2350,7 +2260,7 @@ export function SyndicateAiChallengePanel() {
       window.clearInterval(t);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [mounted]);
+  }, [mounted, refreshFromShellProfile]);
 
   useEffect(() => {
     return () => {
@@ -2381,15 +2291,30 @@ export function SyndicateAiChallengePanel() {
   }, [adminTasks, nowTick]);
 
   const dashboardAvatarUrl = useMemo(
-    () => avatarFromSavedProfileImage(profileImageSaved, getSyndicateProfileAvatarUrl()),
-    [profileImageSaved]
+    () => resolveDashboardAvatarDisplayUrl(profileAvatarRaw),
+    [profileAvatarRaw]
   );
 
-  const profilePreviewAvatarUrl = useMemo(() => {
-    const d = profileImageDraft.trim();
-    if (d && isValidProfileImageValue(d)) return d;
-    return avatarFromSavedProfileImage(profileImageSaved, getSyndicateProfileAvatarUrl());
-  }, [profileImageDraft, profileImageSaved]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onUpdate = () => refreshFromShellProfile();
+    window.addEventListener(DASHBOARD_PROFILE_UPDATED_EVENT, onUpdate);
+    const onStorage = (e: StorageEvent) => {
+      const k = e.key ?? "";
+      if (
+        k === PROFILE_DISPLAY_NAME_KEY ||
+        k === PROFILE_AVATAR_STORAGE_KEY ||
+        k.startsWith("dashboarded:shell:v1:")
+      ) {
+        onUpdate();
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(DASHBOARD_PROFILE_UPDATED_EVENT, onUpdate);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [refreshFromShellProfile]);
 
   useEffect(() => {
     setAdminTaskStartedAtMs((prev) => {
@@ -4034,7 +3959,7 @@ export function SyndicateAiChallengePanel() {
       {adminTaskRecordingPortal}
       {completionToast}
       {syndicateHelpModal}
-      <div className="syndicate-dash-outer relative mx-auto flex min-h-[min(85vh,920px)] w-full min-w-0 max-w-[min(100%,100rem)] flex-col space-y-2 border px-0 pb-1.5 pt-0 sm:space-y-3 sm:pb-2 sm:pt-0 max-md:space-y-2 max-md:border-0 max-md:bg-[linear-gradient(168deg,#050508_0%,#0d0818_44%,#0a0610_100%)] max-md:px-0 max-md:pb-1.5 max-md:pt-0 max-md:shadow-none">
+      <div className="syndicate-dash-outer relative flex h-full min-h-0 w-full min-w-0 max-w-none flex-1 flex-col space-y-2 border px-0 pt-0 sm:space-y-3 sm:pt-0 max-md:space-y-2 max-md:border-0 max-md:bg-[linear-gradient(168deg,#050508_0%,#0d0818_44%,#0a0610_100%)] max-md:px-0 max-md:pt-0 max-md:shadow-none">
       <div className="pointer-events-none absolute inset-0 -z-10 syndicate-dash-scanlines max-md:opacity-35" />
       <div className="syndicate-dash-header mb-1 flex w-full flex-col gap-2 rounded-2xl border px-2 py-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3 sm:px-2.5 sm:py-2 max-md:mb-0 max-md:rounded-none max-md:border-x-0 max-md:border-t-0 max-md:border-b-[rgba(255,215,0,0.24)] max-md:px-2 max-md:py-1.5">
         <div className="min-w-0 w-full sm:flex-1 sm:min-w-0">
@@ -4168,7 +4093,7 @@ export function SyndicateAiChallengePanel() {
               </div>
 
               <div
-                id="syndicate-profile-settings"
+                id="syndicate-shell-profile-summary"
                 className="scroll-mt-6 space-y-5 rounded-2xl border border-white/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(0,0,0,0.32))] p-5 sm:p-6 [box-shadow:inset_0_0_0_1px_rgba(255,255,255,0.06)]"
               >
                 <div className="text-[13px] font-bold uppercase tracking-[0.14em] text-white/55">Profile</div>
@@ -4179,53 +4104,19 @@ export function SyndicateAiChallengePanel() {
                 </div>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                   <div className="mx-auto shrink-0 sm:mx-0">
-                    <div className="text-[12px] font-semibold text-white/55">Photo preview</div>
+                    <div className="text-[12px] font-semibold text-white/55">Photo</div>
                     <div className="mt-2 h-28 w-24 overflow-hidden rounded-md border-2 border-cyan-300/70 bg-black/40 sm:h-32 sm:w-28">
-                      <img src={profilePreviewAvatarUrl} alt="" className="h-full w-full object-cover" />
+                      <img src={dashboardAvatarUrl} alt="" className="h-full w-full object-cover" />
                     </div>
                   </div>
-                  <div className="min-w-0 flex-1 space-y-3">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <label className="cursor-pointer rounded-lg border border-white/25 bg-white/5 px-4 py-2 text-[13px] font-semibold text-white/85 hover:bg-white/10">
-                        Upload photo
-                        <input type="file" accept="image/*" className="sr-only" onChange={onProfileImageFile} />
-                      </label>
-                      <button
-                        type="button"
-                        onClick={clearProfilePhoto}
-                        className="rounded-lg border border-white/20 px-4 py-2 text-[13px] font-semibold text-white/70 hover:bg-white/5"
-                      >
-                        Reset to default
-                      </button>
-                    </div>
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="text-[12px] font-semibold text-white/55">Display name</div>
+                    <div className="break-words text-[18px] font-black leading-tight text-white sm:text-[20px]">{profileName}</div>
+                    <p className="text-[12px] leading-snug text-white/45">
+                      Same as the top bar profile. Open the profile button next to search to change your name or picture.
+                    </p>
                   </div>
                 </div>
-                <div>
-                  <label className="text-[14px] font-semibold text-white/70" htmlFor="syndicate-display-name">
-                    Display name (dashboard &amp; leaderboard)
-                  </label>
-                  <input
-                    id="syndicate-display-name"
-                    value={profileName}
-                    onChange={(e) => {
-                      setProfileSettingsMsg(null);
-                      setProfileName(e.target.value);
-                    }}
-                    placeholder={getSyndicateUser()?.email || "Name"}
-                    className="syndicate-readable mt-2 w-full rounded-lg border border-white/25 bg-black/50 px-3 py-2.5 text-[16px] text-white placeholder:text-white/35"
-                  />
-                  <p className="mt-1 text-[12px] text-white/45">Defaults to your account email until you change it.</p>
-                </div>
-                {profileSettingsMsg ? (
-                  <p className="text-[13px] text-amber-200/95">{profileSettingsMsg}</p>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => saveProfile()}
-                  className="rounded-lg border border-[rgba(0,255,180,0.45)] bg-[rgba(0,255,180,0.12)] px-6 py-2.5 text-[15px] font-bold text-[#baffdd] hover:bg-[rgba(0,255,180,0.2)]"
-                >
-                  Save profile
-                </button>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -4605,21 +4496,8 @@ export function SyndicateAiChallengePanel() {
                   <div className="min-w-0">
                     <div className="text-[11px] font-black uppercase tracking-[0.14em] text-[color:var(--gold)]/70">Your profile</div>
                     <div className="mt-1 break-words text-[24px] font-black leading-none text-white sm:text-[28px]">
-                      {syndicateShellDisplayName(profileName)}
+                      {profileName}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowStatsProfile(true);
-                        window.setTimeout(() => {
-                          document.getElementById("syndicate-profile-settings")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                        }, 50);
-                      }}
-                      className="syndicate-link-skip mt-2 text-[12px] font-bold uppercase tracking-[0.12em] text-cyan-200/90 underline decoration-cyan-400/40 underline-offset-2 hover:text-white"
-                    >
-                      Edit name &amp; photo
-                    </button>
-                    <div className="mt-2 text-[12px] text-white/70">Your streak, your name, your run.</div>
                     <p className="mt-2 w-full min-w-0 text-[15px] font-semibold leading-relaxed text-[#f5e6c8]/90 sm:text-[16px]">
                       Chip away at missions — heat builds with every day you show up.
                     </p>

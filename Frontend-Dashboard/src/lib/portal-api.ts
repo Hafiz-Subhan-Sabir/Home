@@ -4,13 +4,20 @@ import {
   AFFILIATE_REFERRAL_IDS_STORAGE_KEY,
   type StoredAffiliateReferralIds,
 } from "@/lib/affiliateReferralIds";
-import { PROFILE_DISPLAY_NAME_KEY, displayNameFromEmail } from "@/lib/dashboardProfileStorage";
+import {
+  displayNameFromEmail,
+  shellProfileDisplayKey,
+  shellProfileStorageNamespace,
+  syncShellProfileAfterLogin
+} from "@/lib/dashboardProfileStorage";
 import { createSyndicateSession } from "@/lib/syndicateAuth";
 
 export const STORAGE_ACCESS = "syndicate_access";
 export const STORAGE_REFRESH = "syndicate_refresh";
 /** DRF Token from simple email/password login (`/api/syndicate-auth/login/`). */
 export const STORAGE_SIMPLE_AUTH = "simple_auth_token";
+
+const SIMPLE_AUTH_SESSION_COOKIE = "simple_auth_session";
 
 export type PortalUser = {
   id: number;
@@ -130,6 +137,26 @@ export function readStoredDrfToken(): string | null {
   return t || null;
 }
 
+function readSimpleAuthSessionCookieValue(): string | null {
+  if (typeof document === "undefined") return null;
+  for (const part of document.cookie.split(";")) {
+    const i = part.indexOf("=");
+    if (i === -1) continue;
+    const k = part.slice(0, i).trim();
+    if (k !== SIMPLE_AUTH_SESSION_COOKIE) continue;
+    const v = part.slice(i + 1).trim();
+    return v || null;
+  }
+  return null;
+}
+
+/** True when the browser already has Syndicate OTP session (middleware cookie and/or stored token). */
+export function hasSimpleAuthSessionClient(): boolean {
+  if (typeof window === "undefined") return false;
+  if (readStoredDrfToken()) return true;
+  return Boolean(readSimpleAuthSessionCookieValue());
+}
+
 /** JWT uses Bearer; DRF authtoken uses Token (see syndicate_backend REST_FRAMEWORK). */
 export function getAuthorizationHeader(): string | null {
   const jwt = readStoredAccess();
@@ -149,7 +176,6 @@ export function clearTokens() {
   window.localStorage.removeItem(STORAGE_REFRESH);
 }
 
-const SIMPLE_AUTH_SESSION_COOKIE = "simple_auth_session";
 const SIMPLE_AUTH_SESSION_MAX_AGE_SEC = 60 * 60 * 24 * 30;
 
 export type PersistSimpleAuthIdentity = {
@@ -168,15 +194,19 @@ export function persistSimpleAuthSession(token: string, identity?: PersistSimple
 
   const email = identity?.email?.trim();
   if (!email) return;
+  syncShellProfileAfterLogin(email, identity?.userId ?? null);
+  const ns = shellProfileStorageNamespace(email, identity?.userId ?? null);
+  const storedShellName =
+    ns !== "anon" ? window.localStorage.getItem(shellProfileDisplayKey(ns))?.trim() : "";
   const label = displayNameFromEmail(email);
-  if (label) window.localStorage.setItem(PROFILE_DISPLAY_NAME_KEY, label);
+  const nameForSession = (storedShellName || label || email).trim();
   const refs = identity?.referralIds;
   if (refs?.complete?.trim()) {
     window.localStorage.setItem(AFFILIATE_REFERRAL_IDS_STORAGE_KEY, JSON.stringify(refs));
   }
   const uid = identity?.userId;
   createSyndicateSession(
-    { name: label || email, email },
+    { name: nameForSession, email },
     trimmed,
     typeof uid === "number" && Number.isFinite(uid) && uid > 0 ? uid : 0,
   );

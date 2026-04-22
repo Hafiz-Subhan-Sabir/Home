@@ -49,12 +49,20 @@ export type SyndicateSnapshot = {
   durationDays: 7 | 14 | 30;
   category?: string;
   activeMissionTitle?: string;
+  /** Incomplete missions still on the 24h board (Syndicate today feed). */
+  activeLiveMissionCount?: number;
   /** Progress signal for active missions row (0..100). */
   activeMissionsPct: number;
   /** Share of challenges missed / slipped (0..100), dashboard metaphor. */
   missedChallengesPct: number;
   leaderboardPos?: number;
   nextRankChecklist: string[];
+  /** Lifetime Syndicate mission points (local + server-synced storage). */
+  missionPointsTotal?: number;
+  /** Next reward tier name (Unlock & redeem ladder). */
+  nextRankLabel?: string;
+  /** Points remaining until `nextRankLabel`; null if unknown. */
+  pointsToNext?: number | null;
 };
 
 export type AffiliateSnapshot = {

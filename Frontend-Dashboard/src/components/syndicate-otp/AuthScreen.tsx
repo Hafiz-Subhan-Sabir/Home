@@ -421,7 +421,7 @@ export default function AuthScreen({
           throw new Error(data.error || "Request failed");
         }
         setMessage(data.message || "Check your inbox for the code.");
-        router.push(syndicateOtpVerifyHref(data.email || email.trim(), "signup"));
+        router.replace(syndicateOtpVerifyHref(data.email || email.trim(), "signup"));
         return;
       }
 
@@ -479,7 +479,7 @@ export default function AuthScreen({
         throw new Error("Verification step not started. Please try again.");
       }
       setMessage(data.message || "Check your inbox for the code.");
-      router.push(syndicateOtpVerifyHref(data.email || email.trim(), "login"));
+      router.replace(syndicateOtpVerifyHref(data.email || email.trim(), "login"));
     } catch (submitError) {
       setError(
         submitError instanceof Error

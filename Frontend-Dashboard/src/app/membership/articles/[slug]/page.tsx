@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import toast from "react-hot-toast";
@@ -45,6 +45,8 @@ export default function MembershipArticleDetailPage() {
   const [article, setArticle] = useState<ArticleDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  /** Slug from URL for instant title shell before fetch returns. */
+  const slugDisplay = useMemo(() => slug.replace(/-/g, " "), [slug]);
   const [reader, setReader] = useState<ArticleReaderState>(null);
 
   const closeReader = useCallback(() => {
@@ -109,31 +111,18 @@ export default function MembershipArticleDetailPage() {
     return article.content.split("\n\n").map((b) => b.trim()).filter(Boolean);
   }, [article?.content]);
 
-  if (loading) {
-    return (
-      <div className="min-h-dvh overflow-x-hidden bg-[#0b0b0c]">
-        <div className="fluid-page-px mx-auto max-w-5xl py-12 sm:py-16">
-          <div className="h-4 w-32 animate-pulse rounded bg-white/10" />
-          <div className="mt-10 h-10 max-w-2xl animate-pulse rounded bg-white/[0.07]" />
-          <div className="mt-4 h-4 w-full animate-pulse rounded bg-white/[0.05]" />
-          <div className="mt-3 h-4 max-w-[83%] animate-pulse rounded bg-white/[0.05]" />
-          <div className="mt-12 space-y-3">
-            <div className="h-3 w-full animate-pulse rounded bg-white/[0.04]" />
-            <div className="h-3 w-full animate-pulse rounded bg-white/[0.04]" />
-            <div className="h-3 w-4/5 animate-pulse rounded bg-white/[0.04]" />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const publishedLabel = article ? formatPublishedDate(article.published_at) : null;
+  const showFatal = !loading && Boolean(err || (!article && slug));
 
-  if (err || !article) {
-    return (
-      <div className="min-h-dvh overflow-x-hidden bg-[#0b0b0c] py-12 text-neutral-100 fluid-page-px">
-        <div className="mx-auto max-w-lg rounded-2xl border border-white/[0.08] bg-[#141416] p-8 shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+  let mainContent: ReactNode = null;
+  if (showFatal) {
+    mainContent = (
+      <div className="fluid-page-px mx-auto max-w-lg py-12 text-neutral-100 sm:py-16">
+        <div className="rounded-2xl border border-white/[0.08] bg-[#141416] p-8 shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
           <p className="text-[15px] leading-relaxed text-red-200/90">{err || "Not found."}</p>
           <Link
             href={ARTICLES_HREF}
+            prefetch
             className="mt-6 inline-flex text-[14px] font-semibold text-[color:var(--gold-neon)] transition hover:text-amber-200"
           >
             ← Back to articles
@@ -141,46 +130,47 @@ export default function MembershipArticleDetailPage() {
         </div>
       </div>
     );
-  }
-
-  const publishedLabel = formatPublishedDate(article.published_at);
-
-  return (
-    <div className="min-h-dvh overflow-x-hidden bg-[#0b0b0c] text-neutral-100">
-      <div className="border-b border-white/[0.06] bg-[#0e0e10]/80">
-        <div className="fluid-page-px mx-auto flex w-full min-w-0 max-w-5xl items-center justify-between gap-3 py-4 sm:gap-4">
-          <Link
-            href={ARTICLES_HREF}
-            className="text-[13px] font-medium text-neutral-500 transition hover:text-[color:var(--gold-neon)]"
-          >
-            ← Articles
-          </Link>
-          {publishedLabel ? (
-            <time dateTime={article.published_at} className="text-[12px] tabular-nums text-neutral-500">
-              {publishedLabel}
-            </time>
-          ) : (
-            <span className="text-[12px] text-neutral-600">Membership</span>
-          )}
-        </div>
-      </div>
-
+  } else if (loading) {
+    mainContent = (
       <article className="fluid-page-px mx-auto w-full min-w-0 max-w-5xl pb-16 pt-8 sm:pb-20 sm:pt-12">
         <div className="membership-article-shiny-frame w-full min-w-0">
           <div className="membership-article-shiny-inner px-[clamp(0.875rem,3.5vw,1.75rem)] py-7 sm:px-6 sm:py-9 md:px-8 md:py-11">
-            {article.thumbnail?.trim() ? (
+            <div className="mb-8 aspect-[16/9] w-full max-w-3xl animate-pulse rounded-xl bg-white/[0.06] sm:mx-auto" />
+            <header className="min-w-0 border-b border-white/[0.08] pb-8 sm:pb-10">
+              <div className="h-9 max-w-3xl animate-pulse rounded-lg bg-white/[0.08] sm:mx-auto" />
+              <p className="mx-auto mt-5 max-w-2xl text-center text-[13px] capitalize text-neutral-500 sm:mt-6">
+                {slugDisplay}
+              </p>
+            </header>
+            <div className="mt-10 space-y-3 sm:mt-12">
+              <div className="h-3 w-full animate-pulse rounded bg-white/[0.04]" />
+              <div className="h-3 w-full animate-pulse rounded bg-white/[0.04]" />
+              <div className="h-3 w-[88%] animate-pulse rounded bg-white/[0.04]" />
+              <div className="h-3 w-full animate-pulse rounded bg-white/[0.04]" />
+              <div className="h-3 w-[72%] animate-pulse rounded bg-white/[0.04]" />
+            </div>
+          </div>
+        </div>
+      </article>
+    );
+  } else if (article) {
+    mainContent = (
+      <article className="fluid-page-px mx-auto w-full min-w-0 max-w-5xl pb-16 pt-8 sm:pb-20 sm:pt-12">
+        <div className="membership-article-shiny-frame w-full min-w-0">
+          <div className="membership-article-shiny-inner px-[clamp(0.875rem,3.5vw,1.75rem)] py-7 sm:px-6 sm:py-9 md:px-8 md:py-11">
+            {article!.thumbnail?.trim() ? (
               <figure className="mb-10 overflow-hidden rounded-xl border border-white/[0.08] bg-black/40 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-                <img src={article.thumbnail.trim()} alt="" className="aspect-[16/9] w-full object-cover" />
+                <img src={article!.thumbnail!.trim()} alt="" className="aspect-[16/9] w-full object-cover" />
               </figure>
             ) : null}
 
             <header className="min-w-0 border-b border-white/[0.08] pb-8 sm:pb-10">
               <h1 className="membership-article-title w-full min-w-0 text-left text-[clamp(1.5rem,2.8vw+0.85rem,2.35rem)] font-semibold leading-[1.2] tracking-tight text-white sm:text-center">
-                {article.title}
+                {article!.title}
               </h1>
-              {article.description?.trim() ? (
+              {article!.description?.trim() ? (
                 <p className="membership-article-prose mt-5 w-full min-w-0 text-left text-[15px] leading-[1.72] text-neutral-400 sm:mt-6 sm:text-[17px] sm:leading-[1.8]">
-                  {article.description}
+                  {article!.description}
                 </p>
               ) : null}
             </header>
@@ -284,9 +274,9 @@ export default function MembershipArticleDetailPage() {
               </div>
             ) : null}
 
-            {(article.pdf_url?.trim() || article.source_url?.trim()) ? (
+            {(article!.pdf_url?.trim() || article!.source_url?.trim()) ? (
               <footer className="mt-12 flex w-full min-w-0 flex-col gap-3 border-t border-white/[0.08] pt-8 sm:mt-14 sm:flex-row sm:flex-wrap sm:pt-10">
-                {article.pdf_url?.trim() ? (
+                {article!.pdf_url?.trim() ? (
                   <button
                     type="button"
                     onClick={() => void openPdf()}
@@ -295,7 +285,7 @@ export default function MembershipArticleDetailPage() {
                     View PDF
                   </button>
                 ) : null}
-                {article.source_url?.trim() ? (
+                {article!.source_url?.trim() ? (
                   <button
                     type="button"
                     onClick={openWeb}
@@ -309,6 +299,36 @@ export default function MembershipArticleDetailPage() {
           </div>
         </div>
       </article>
+    );
+  }
+
+  return (
+    <div className="min-h-dvh overflow-x-hidden bg-[#0b0b0c] text-neutral-100">
+      <div className="border-b border-white/[0.06] bg-[#0e0e10]/80">
+        <div className="fluid-page-px mx-auto flex w-full min-w-0 max-w-5xl items-center justify-between gap-3 py-4 sm:gap-4">
+          <Link
+            href={ARTICLES_HREF}
+            prefetch
+            className="text-[13px] font-medium text-neutral-500 transition hover:text-[color:var(--gold-neon)]"
+          >
+            ← Articles
+          </Link>
+          {loading ? (
+            <span className="inline-flex items-center gap-2 text-[12px] tabular-nums text-cyan-200/75">
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-300 shadow-[0_0_8px_rgba(34,211,238,0.7)]" />
+              Loading
+            </span>
+          ) : publishedLabel ? (
+            <time dateTime={article!.published_at} className="text-[12px] tabular-nums text-neutral-500">
+              {publishedLabel}
+            </time>
+          ) : (
+            <span className="text-[12px] text-neutral-600">Membership</span>
+          )}
+        </div>
+      </div>
+
+      {mainContent}
 
       <MembershipArticleReader state={reader} onClose={closeReader} />
     </div>

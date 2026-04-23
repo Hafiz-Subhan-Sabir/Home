@@ -38,7 +38,7 @@ export function GoalsPanelProvider({ children }: { children: ReactNode }) {
       title: "Opened Goals & Milestones",
       detail: "Mission deck & timeline overlay",
       moreDetails:
-        "You opened the floating Goals & Milestones panel: missions, automatic lead-up reminders, notes, and quick access tools."
+        "You opened the floating Goals & Milestones panel: missions, automatic lead-up reminders, and notes."
     });
   }, [recordEvent]);
   const closeGoalsPanel = useCallback(() => setGoalsPanelOpen(false), []);

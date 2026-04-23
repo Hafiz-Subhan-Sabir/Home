@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,24 +33,6 @@ function localDateAndTimeToIso(dateStr: string, timeStr: string): string | null 
   const d = new Date(`${dateStr}T${t}`);
   return Number.isFinite(d.getTime()) ? d.toISOString() : null;
 }
-
-function QuickAccessGridFallback() {
-  return (
-    <div
-      className="flex min-h-[min(48vh,560px)] w-full flex-col justify-center gap-4 rounded-xl border border-white/10 bg-black/25 px-4 py-8"
-      aria-hidden
-    >
-      <div className="mx-auto h-1.5 w-48 max-w-[80%] animate-pulse rounded-full bg-[rgba(255,215,0,0.2)]" />
-      <div className="mx-auto h-1.5 w-32 max-w-[60%] animate-pulse rounded-full bg-white/10" />
-    </div>
-  );
-}
-
-const QuickAccessGrid = dynamic(
-  () =>
-    import("@/features/productivity/control-center/QuickAccessGrid").then((mod) => mod.QuickAccessGrid),
-  { ssr: false, loading: () => <QuickAccessGridFallback /> }
-);
 
 const LS_MISSIONS = "dashboarded:deck-missions";
 const LS_REMINDERS = "dashboarded:deck-reminders";
@@ -258,9 +239,6 @@ const DECK_MISSIONS = DECK_SHELL;
 
 const DECK_NOTES =
   "relative w-full min-w-0 shrink-0 overflow-hidden rounded-xl border-[rgba(255,215,0,0.46)] bg-gradient-to-b from-[rgba(255,215,0,0.1)] via-[#060606]/96 to-[#050505] p-[var(--fluid-deck-p)] shadow-[0_14px_48px_rgba(0,0,0,0.48),0_0_0_1px_rgba(255,215,0,0.16),0_0_44px_rgba(255,215,0,0.12),0_0_72px_rgba(255,200,0,0.06),inset_0_1px_0_rgba(255,255,255,0.06)]";
-
-const DECK_QUICK_WRAP =
-  "relative overflow-hidden rounded-xl border border-[rgba(255,215,0,0.26)] bg-[#060606]/78 p-[var(--fluid-deck-p)] shadow-[0_0_0_1px_rgba(255,215,0,0.08),0_0_52px_rgba(255,215,0,0.08),inset_0_1px_0_rgba(255,215,0,0.08)]";
 
 function DeckGlowNotes() {
   return (
@@ -1736,23 +1714,6 @@ export function MissionCommandDeckCard({
           </div>
         </div>
 
-        {/* 3 — Quick access: full width & height below notes */}
-        <section
-          aria-label="Quick access tools"
-          className="relative w-full min-w-0 flex-1 scroll-mt-4"
-        >
-          <div
-            className={cn(
-              DECK_QUICK_WRAP,
-              "relative flex w-full min-h-[min(52vh,640px)] min-w-0 flex-col sm:min-h-[min(48vh,560px)]"
-            )}
-          >
-            <DeckQuarterGlow />
-            <div className="relative z-[1] flex min-h-0 w-full flex-1 flex-col">
-              <QuickAccessGrid siteName="The Syndicate" variant="fullWidth" />
-            </div>
-          </div>
-        </section>
       </div>
 
       {timeEdit ? (

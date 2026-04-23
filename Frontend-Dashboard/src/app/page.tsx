@@ -2,6 +2,7 @@
 
 import { createPortal } from "react-dom";
 import { useRouter, usePathname } from "next/navigation";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import type { CSSProperties } from "react";
 import gsap from "gsap";
@@ -66,6 +67,7 @@ const FEATURE_MENU_ENTRIES: FeatureMenuEntry[] = [
   { section: "Website features", label: "Membership section", navKey: "resources" },
   { section: "Website features", label: "Affiliate portal", navKey: "affiliate" },
   { section: "More options", label: "Support", navKey: "support" },
+  { section: "More options", label: "Quick Access", navKey: "quickaccess" },
   { section: "More options", label: "Settings", navKey: "settings" }
 ];
 
@@ -85,6 +87,23 @@ const sidebarMotion = {
   exit: { opacity: 0, x: -28 },
   transition: { duration: 0.34, ease: [0.22, 1, 0.36, 1] as const }
 };
+
+function QuickAccessGridFallback() {
+  return (
+    <div
+      className="flex min-h-[min(52vh,640px)] w-full flex-col justify-center gap-4 rounded-xl border border-white/10 bg-black/25 px-4 py-8"
+      aria-hidden
+    >
+      <div className="mx-auto h-1.5 w-48 max-w-[80%] animate-pulse rounded-full bg-[rgba(255,215,0,0.2)]" />
+      <div className="mx-auto h-1.5 w-32 max-w-[60%] animate-pulse rounded-full bg-white/10" />
+    </div>
+  );
+}
+
+const QuickAccessGrid = dynamic(
+  () => import("@/features/productivity/control-center/QuickAccessGrid").then((mod) => mod.QuickAccessGrid),
+  { ssr: false, loading: () => <QuickAccessGridFallback /> }
+);
 
 function cn(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
@@ -296,6 +315,12 @@ function NavIcon({ k }: { k: string }) {
           />
           <path d="M9.2 12.5h5.6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           <path d="M12 16.2h.01" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
+      );
+    case "quickaccess":
+      return (
+        <svg className={base} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4.8 4.8h6.2v6.2H4.8V4.8Zm8.2 0h6.2v6.2H13V4.8Zm-8.2 8.2h6.2v6.2H4.8V13Zm8.2 0h6.2v6.2H13V13Z" stroke="currentColor" strokeWidth="1.7" />
         </svg>
       );
     case "settings":
@@ -1472,6 +1497,7 @@ export default function Page() {
       { key: "resources", label: "Membership section" },
       { key: "affiliate", label: "Affiliate Portal" },
       { key: "support", label: "Support" },
+      { key: "quickaccess", label: "Quick Access" },
       { key: "settings", label: "Settings" }
     ],
     []
@@ -2745,6 +2771,20 @@ export default function Page() {
               ) : selectedNavKey === "resources" ? (
                 <div className="flex min-h-0 min-w-0 w-full max-w-none flex-1 flex-col">
                   <MembershipContentHub />
+                </div>
+              ) : selectedNavKey === "quickaccess" ? (
+                <div className="min-h-0 min-w-0 w-full max-w-none flex-1 py-1 md:py-2">
+                  <section aria-label="Quick access tools" className="relative w-full min-w-0 flex-1 scroll-mt-2">
+                    <div className="relative flex w-full min-h-[min(56vh,700px)] min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-[rgba(255,215,0,0.26)] bg-[#060606]/78 p-[var(--fluid-deck-p)] shadow-[0_0_0_1px_rgba(255,215,0,0.08),0_0_52px_rgba(255,215,0,0.08),inset_0_1px_0_rgba(255,215,0,0.08)] sm:min-h-[min(52vh,640px)]">
+                      <div
+                        className="pointer-events-none absolute inset-0 opacity-90 [background:radial-gradient(720px_320px_at_20%_0%,rgba(255,215,0,0.11),rgba(0,0,0,0)_60%)]"
+                        aria-hidden
+                      />
+                      <div className="relative z-[1] flex min-h-0 w-full flex-1 flex-col">
+                        <QuickAccessGrid siteName="The Syndicate" variant="fullWidth" />
+                      </div>
+                    </div>
+                  </section>
                 </div>
               ) : selectedNavKey === "dashboard" ? (
                 <>

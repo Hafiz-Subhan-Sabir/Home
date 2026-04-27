@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import Image from 'next/image'
 import { NavApp } from '@/components/NavApp'
 import GlobalBottomSections from '@/components/GlobalBottomSections'
 
@@ -46,33 +46,18 @@ const DELIVERY_FLOW = [
   },
 ]
 
-const INCLUDED_RESOURCES = [
-  'Execution-focused training videos and implementation frameworks',
-  'Step-by-step playbooks for building money and influence systems',
-  'Advanced mindset and business psychology modules',
-  'Performance structure to improve consistency and decision quality',
-  'Long-term mastery principles rooted in ethics and responsibility',
-  'A clear path from foundational discipline to strategic dominance',
-]
-
-const NETWORK_ALLIANCE_PARAGRAPHS = [
-  'The path to success is not meant to be walked alone.',
-  'Joining a powerful alliance, an elite organisation of like-minded individuals, becomes not just a choice but a necessity for those who seek to transcend the difficult struggles for power and possession. Within the sanctity of this alliance, you not only find refuge but a crucible for growth, where your strengths are honed and your weaknesses fortified by the collective wisdom of those who share your values and desires.',
-  'This is not merely a network, it is an alliance forged on a sacred moral code. Its members abide by principles of integrity, mutual respect, and unwavering honour, creating an environment where strength is sharpened and weaknesses are transformed into fortitude.',
-  "The Syndicate; it's where money and power meet mastery. Join The Syndicate today! Make the commitment now!",
-]
-
-const MONEY_POWER_MASTERY_PARAGRAPHS = [
-  'The Syndicate philosophy teaches that money and power go hand in hand. They are like two sides of the same coin. Money and power, if not correctly wielded, has the potential to completely corrupt you, leading you down a dark path of corrupt, degenerate and hedonistic behaviour.',
-  "The Syndicate's mission goes beyond attaining money, power and influence. Its elite training programmes aim to redefine how individuals perceive power and influence, emphasising the importance of moral strength and societal impact. Members are taught to master money and power systems without succumbing to their enslavement or morally corrupting properties.",
-  'This is the definition of true success and greatness. This is the true meaning of money, power and life mastery.',
+const FOUNDER_SHOWCASE = [
+  { src: '/assets/founder/ceo.jpg', alt: 'Founder portrait one' },
+  { src: '/assets/founder/ceo.webp', alt: 'Founder portrait two' },
+  { src: '/assets/founder/Pic%204.png', alt: 'Founder portrait three' },
+  { src: '/assets/founder/Still%201.jpg', alt: 'Founder portrait four' },
 ]
 
 export default function WhatYouGetPage() {
   return (
     <div className="min-h-[100dvh] bg-black">
       <NavApp />
-      <section className="relative h-[100dvh] min-h-[100dvh] w-full overflow-hidden border-b border-cyan-300/20 px-4 pb-14 pt-[96px] sm:px-6 sm:pb-16 sm:pt-[110px]">
+      <section className="relative flex h-[100dvh] min-h-[100dvh] w-full items-center overflow-hidden px-4 pb-14 pt-[96px] sm:px-6 sm:pb-16 sm:pt-[110px]">
         <div className="pointer-events-none absolute inset-0">
           <video autoPlay muted loop playsInline preload="metadata" className="h-[100dvh] w-full object-cover opacity-100">
             <source src="/assets/video.mp4" type="video/mp4" />
@@ -87,121 +72,124 @@ export default function WhatYouGetPage() {
         </div>
       </section>
 
-      <section className="relative px-4 py-12 sm:px-6 sm:py-16">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(34,211,238,0.12),transparent_35%),radial-gradient(circle_at_82%_84%,rgba(251,191,36,0.1),transparent_34%)]" />
-        <div className="relative z-10 mx-auto max-w-7xl">
-          <div className="mb-6">
-            <h2 className="mt-2 text-2xl font-semibold text-cyan-100 sm:text-3xl">Built for operators who want structure, not noise</h2>
+      <section className="relative flex h-[100dvh] min-h-[100dvh] w-full items-center overflow-hidden px-4 py-10 sm:px-6 sm:py-12">
+        <div className="pointer-events-none absolute inset-0">
+          <Image
+            src="/assets/g.gif"
+            alt=""
+            aria-hidden
+            fill
+            unoptimized
+            sizes="100vw"
+            className="object-cover opacity-34"
+          />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_20%,rgba(251,191,36,0.15),transparent_35%),radial-gradient(circle_at_86%_82%,rgba(34,211,238,0.12),transparent_35%)]" />
+          <div className="absolute inset-0 bg-black/54" />
+        </div>
+        <div className="relative z-10 mx-auto w-full max-w-[min(1860px,99vw)]">
+          <div className="mb-5">
+            <h2 className="mt-2 text-5xl font-black text-amber-100 drop-shadow-[0_0_22px_rgba(251,191,36,0.42)] sm:text-6xl lg:text-7xl">
+              Built for operators who want structure, not noise
+            </h2>
+            <p className="mt-3 max-w-5xl text-lg leading-relaxed text-zinc-200/90 sm:text-xl">
+              A complete system for money, power, and life mastery designed to create clarity, execution, and long-term momentum.
+            </p>
           </div>
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-6 lg:grid-cols-[1.18fr_0.82fr]">
+            <div className="grid auto-rows-fr gap-4 md:grid-cols-2 lg:gap-5">
             {VALUE_PILLARS.map((pillar, index) => (
               <article
                 key={pillar.title}
-                className={`methods-fade-up group relative overflow-hidden rounded-2xl border p-5 shadow-[0_0_20px_rgba(34,211,238,0.1)] transition duration-300 hover:-translate-y-1 ${
+                className={`methods-fade-up group relative min-h-[clamp(250px,31vh,340px)] overflow-hidden rounded-2xl border p-6 sm:p-7 shadow-[0_0_30px_rgba(251,191,36,0.24)] transition duration-500 ease-out hover:-translate-y-2 hover:scale-[1.02] hover:rotate-[-0.2deg] ${
                   index % 2 === 0
-                    ? 'border-cyan-300/35 bg-gradient-to-b from-cyan-950/25 via-[#040b14] to-black hover:shadow-[0_0_28px_rgba(34,211,238,0.2)]'
-                    : 'border-fuchsia-300/30 bg-gradient-to-b from-fuchsia-950/20 via-[#140613] to-black hover:shadow-[0_0_28px_rgba(217,70,239,0.2)]'
+                    ? 'border-amber-300/60 bg-gradient-to-b from-[#170f04]/78 via-[#0a0a0a] to-black hover:border-amber-200/75 hover:shadow-[0_0_48px_rgba(251,191,36,0.44)]'
+                    : 'border-cyan-300/48 bg-gradient-to-b from-[#130b03]/74 via-[#090909] to-black hover:border-cyan-200/70 hover:shadow-[0_0_44px_rgba(34,211,238,0.34)]'
                 }`}
               >
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-300/80 to-transparent opacity-70 group-hover:opacity-100" />
-                <h3 className="text-lg font-semibold text-cyan-100">{pillar.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-zinc-200/85">{pillar.description}</p>
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-amber-300/80 to-transparent opacity-70 group-hover:opacity-100" />
+                <h3 className="text-2xl font-semibold text-amber-100 sm:text-3xl">{pillar.title}</h3>
+                <p className="mt-3 text-lg leading-relaxed text-zinc-200/88">{pillar.description}</p>
               </article>
             ))}
+            </div>
+            <div className="rounded-2xl border border-amber-300/50 bg-gradient-to-b from-[#120d05]/80 via-black/82 to-[#100b04]/84 p-6 shadow-[0_0_40px_rgba(251,191,36,0.24)] sm:p-7">
+              <p className="text-base uppercase tracking-[0.24em] text-amber-200/85">Delivery Process</p>
+              <div className="mt-4 space-y-3">
+                {DELIVERY_FLOW.map((item, index) => (
+                  <article
+                    key={item.step}
+                    className={`methods-fade-up rounded-xl border p-5 transition duration-300 hover:-translate-y-1 hover:scale-[1.01] ${
+                      index === 1
+                        ? 'border-amber-300/58 bg-[#130e05]/60 shadow-[0_0_30px_rgba(251,191,36,0.3)] hover:shadow-[0_0_40px_rgba(251,191,36,0.45)]'
+                        : 'border-amber-300/48 bg-black/56 shadow-[0_0_26px_rgba(251,191,36,0.22)] hover:shadow-[0_0_34px_rgba(251,191,36,0.34)]'
+                    }`}
+                  >
+                    <p className="text-base font-semibold tracking-[0.2em] text-amber-200/85">{item.step}</p>
+                    <h3 className="mt-1 text-xl font-semibold text-amber-100 sm:text-2xl">{item.title}</h3>
+                    <p className="mt-2 text-base leading-relaxed text-zinc-200/90 sm:text-lg">{item.description}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="px-4 py-12 sm:px-6 sm:py-16">
-        <div className="mx-auto grid max-w-7xl gap-8 rounded-2xl border border-amber-300/30 bg-gradient-to-r from-[#0a1014] via-black to-[#130d05] p-6 shadow-[0_0_32px_rgba(251,191,36,0.1)] sm:p-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <div>
-            <h2 className="mt-2 text-2xl font-semibold text-amber-100 sm:text-3xl">A complete system for money, power, and life mastery</h2>
-            <ul className="mt-6 space-y-3 text-sm text-zinc-200/88 sm:text-base">
-              {INCLUDED_RESOURCES.map((item, index) => (
-                <li
-                  key={item}
-                  className={`rounded-lg border px-4 py-3 transition ${
-                    index % 2 === 0
-                      ? 'border-amber-300/25 bg-black/35 hover:border-amber-200/40'
-                      : 'border-cyan-300/25 bg-[#031016]/45 hover:border-cyan-200/40'
-                  }`}
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="space-y-4">
-            <p className="text-xs uppercase tracking-[0.24em] text-cyan-200/80">Delivery Process</p>
-            {DELIVERY_FLOW.map((item, index) => (
+      <section className="relative flex h-[100dvh] min-h-[100dvh] w-full items-center overflow-hidden px-4 py-12 sm:px-6 sm:py-14">
+        <div className="pointer-events-none absolute inset-0">
+          <Image
+            src="/assets/tt.gif"
+            alt=""
+            aria-hidden
+            fill
+            unoptimized
+            sizes="100vw"
+            className="object-cover opacity-34"
+          />
+          <div className="absolute inset-0 bg-black/56" />
+        </div>
+        <div className="relative z-10 mx-auto grid w-full max-w-[min(1860px,99vw)] gap-10 lg:grid-cols-[1.02fr_0.98fr]">
+          <article className="relative min-h-[clamp(500px,68vh,780px)] overflow-hidden rounded-3xl bg-gradient-to-b from-[#151005]/68 to-black/92 p-8 shadow-[0_0_38px_rgba(251,191,36,0.24)] sm:p-12">
+            <p className="text-base uppercase tracking-[0.24em] text-amber-200/85">Access to a Powerful Network and Alliance</p>
+            <h2 className="mt-3 text-4xl font-bold text-amber-100 sm:text-5xl lg:text-6xl">The path to success is not meant to be walked alone</h2>
+            <div className="mt-6 space-y-5 text-lg leading-relaxed text-zinc-200/90 sm:text-xl">
+              <p>
+                Joining a powerful alliance of disciplined operators is not optional for those who want sustained power and meaningful growth.
+              </p>
+              <p>
+                The Syndicate culture is built on integrity, standards, and strategic accountability so strengths are sharpened and weaknesses are transformed.
+              </p>
+            </div>
+          </article>
+
+          <div className="relative min-h-[clamp(500px,68vh,780px)] rounded-3xl bg-gradient-to-b from-[#120d05]/64 to-black/92 p-8 shadow-[0_0_38px_rgba(251,191,36,0.22)] sm:p-12">
+          <h2 className="text-center text-5xl font-black uppercase tracking-[0.12em] text-amber-100 drop-shadow-[0_0_16px_rgba(251,191,36,0.35)] sm:text-6xl">
+            Founder Vision
+          </h2>
+          <p className="mx-auto mt-4 max-w-5xl text-center text-lg leading-relaxed text-zinc-200/90 sm:text-xl">
+            Built for disciplined operators who execute with intent, structure, and long-term leverage.
+          </p>
+          <div className="mt-8 grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {FOUNDER_SHOWCASE.map((item) => (
               <article
-                key={item.step}
-                className={`methods-fade-up rounded-xl border p-4 transition hover:-translate-y-0.5 ${
-                  index === 1
-                    ? 'border-amber-300/35 bg-[#130e05]/45 shadow-[0_0_18px_rgba(251,191,36,0.14)]'
-                    : 'border-cyan-300/30 bg-black/45 shadow-[0_0_18px_rgba(34,211,238,0.12)]'
-                }`}
+                key={item.src}
+                className="group relative h-[clamp(220px,36vh,320px)] overflow-hidden rounded-2xl border border-amber-300/48 bg-black/45 shadow-[0_0_30px_rgba(251,191,36,0.22)] transition duration-500 ease-out hover:-translate-y-1.5 hover:scale-[1.01] hover:shadow-[0_0_46px_rgba(251,191,36,0.38)]"
               >
-                <p className="text-xs font-semibold tracking-[0.2em] text-cyan-200/80">{item.step}</p>
-                <h3 className="mt-1 text-base font-semibold text-cyan-100">{item.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-zinc-200/85">{item.description}</p>
+                <Image
+                  src={item.src}
+                  alt={item.alt}
+                  fill
+                  sizes="(max-width: 1024px) 50vw, 25vw"
+                  className="object-cover object-top transition duration-500 group-hover:scale-105"
+                />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
               </article>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section className="px-4 py-12 sm:px-6 sm:py-16">
-        <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1.08fr_0.92fr]">
-          <article className="relative overflow-hidden rounded-2xl border border-amber-300/30 bg-gradient-to-b from-[#151005]/45 to-black p-6 shadow-[0_0_24px_rgba(251,191,36,0.14)] sm:p-8">
-            <div className="pointer-events-none absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-amber-200/80 via-amber-300/40 to-transparent" />
-            <p className="text-xs uppercase tracking-[0.24em] text-amber-200/80">Access to a Powerful Network and Alliance</p>
-            <h2 className="mt-2 text-2xl font-semibold text-amber-100 sm:text-3xl">The path to success is not meant to be walked alone</h2>
-            <div className="mt-5 space-y-4 text-sm leading-relaxed text-zinc-200/88 sm:text-base">
-              {NETWORK_ALLIANCE_PARAGRAPHS.map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
-              ))}
-            </div>
-          </article>
-
-          <article className="relative overflow-hidden rounded-2xl border border-cyan-300/30 bg-gradient-to-b from-cyan-950/25 to-black p-6 shadow-[0_0_24px_rgba(34,211,238,0.14)] sm:p-8">
-            <div className="pointer-events-none absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-cyan-200/80 via-cyan-300/40 to-transparent" />
-            <p className="text-xs uppercase tracking-[0.24em] text-cyan-200/80">Money and Power Mastery</p>
-            <h2 className="mt-2 text-2xl font-semibold text-cyan-100 sm:text-3xl">Master the tools without becoming enslaved by them</h2>
-            <div className="mt-5 space-y-4 text-sm leading-relaxed text-zinc-200/88 sm:text-base">
-              {MONEY_POWER_MASTERY_PARAGRAPHS.map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
-              ))}
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section className="border-y border-amber-300/30 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.14),rgba(2,6,23,0.95))] px-4 py-14 sm:px-6 sm:py-16">
-        <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-[1.08fr_0.92fr]">
-          <div>
-            <h2 className="mt-3 text-2xl font-bold text-amber-100 sm:text-4xl">You leave with clarity, discipline, and executable systems</h2>
-            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-zinc-200/85 sm:text-base">
-              This is not generic education. Every module is engineered to produce practical leverage in your business, finances, and personal leadership.
-              You are trained to think strategically, execute precisely, and scale responsibly.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-amber-300/30 bg-gradient-to-b from-[#1a1306]/45 to-black/70 p-5 shadow-[0_0_20px_rgba(251,191,36,0.12)]">
-            <p className="text-sm uppercase tracking-[0.16em] text-amber-200/80">Best next actions</p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <Link href="/programs" className="cta-nav-button text-xs font-semibold">
-                Explore Programs
-              </Link>
-              <Link
-                href="/login"
-                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-cyan-300/65 bg-cyan-300/10 px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-100 shadow-[0_0_16px_rgba(34,211,238,0.2)] transition hover:bg-cyan-300/20"
-              >
-                Join Now
-              </Link>
-            </div>
           </div>
         </div>
       </section>
+
       <GlobalBottomSections />
 
     </div>

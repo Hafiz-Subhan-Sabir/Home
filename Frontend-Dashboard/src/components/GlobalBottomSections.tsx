@@ -27,18 +27,48 @@ const FEATURED_LOGOS = [
 export default function GlobalBottomSections() {
   const pathname = usePathname()
   const isProgramsPage = pathname === '/programs'
+  const isWhatYouGetPage = pathname === '/what-you-get'
   const actionWord = pathname === '/what-you-get' ? 'BE POWERFUL' : pathname === '/our-methods' ? 'BE RICH' : 'MASTER MONEY'
+  const sectionLayoutClass = isWhatYouGetPage
+    ? 'relative flex h-[100dvh] min-h-[100dvh] w-full items-center overflow-hidden px-4 py-12 sm:px-6 sm:py-14'
+    : 'relative overflow-hidden px-4 py-16 sm:px-6 sm:py-20'
 
   return (
     <>
-      <section id="joinNowSection" className="relative overflow-hidden px-4 py-16 sm:px-6 sm:py-20">
+      <section id="joinNowSection" className={sectionLayoutClass}>
         <div className="pointer-events-none absolute inset-0">
           <video autoPlay muted loop playsInline preload="metadata" className="h-full w-full object-cover opacity-55">
             <source src="/assets/v.mp4" type="video/mp4" />
           </video>
           <div className="absolute inset-0 bg-black/72" />
         </div>
-        <div className="relative z-10 mx-auto max-w-6xl px-3 text-center">
+        <div className="relative z-10 mx-auto w-full max-w-[min(1700px,98vw)] px-3 text-center">
+          {isWhatYouGetPage && (
+            <div className="relative mx-auto mb-10 w-full max-w-[min(1600px,96vw)] overflow-hidden rounded-3xl bg-gradient-to-b from-black/55 via-[#060606]/70 to-black/70 p-7 shadow-[0_0_50px_rgba(251,191,36,0.18)] backdrop-blur-[2px] sm:mb-12 sm:p-10">
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(251,191,36,0.18),transparent_38%),radial-gradient(circle_at_88%_82%,rgba(34,211,238,0.14),transparent_40%)]" />
+              <h2 className="bg-gradient-to-r from-amber-100 via-amber-200 to-amber-400 bg-clip-text text-2xl font-black tracking-[0.02em] text-transparent drop-shadow-[0_0_16px_rgba(251,191,36,0.34)] sm:text-4xl">
+                You Leave With Clarity, Discipline, and Executable Systems
+              </h2>
+              <p className="mx-auto mt-4 max-w-4xl text-sm leading-relaxed text-zinc-100/85 sm:text-base">
+                Not theory. Not noise. Every module is designed for real-world leverage across business, finances, and leadership - so your execution stays sharp
+                and your growth stays controlled.
+              </p>
+              <div className="relative mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                {['Clarity', 'Discipline', 'Execution', 'Leverage', 'Strategy', 'Scale'].map((keyword, index) => (
+                  <span
+                    key={keyword}
+                    className={`inline-flex min-h-[48px] items-center justify-center rounded-xl px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100 shadow-[0_0_16px_rgba(251,191,36,0.26)] transition duration-300 hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-[0_0_24px_rgba(251,191,36,0.42)] sm:min-h-[54px] sm:text-xs ${
+                      index % 2 === 0
+                        ? 'bg-gradient-to-b from-[#1a1206]/92 via-[#0a0804]/88 to-black/80'
+                        : 'bg-gradient-to-b from-[#07131b]/92 via-[#050b10]/88 to-black/80'
+                    }`}
+                  >
+                    {keyword}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           {isProgramsPage ? (
             <h2 className="mx-auto mt-3 max-w-[30ch] text-4xl font-black uppercase leading-[1.08] tracking-[0.05em] text-amber-100 sm:text-6xl md:text-7xl">
               <span className="block">

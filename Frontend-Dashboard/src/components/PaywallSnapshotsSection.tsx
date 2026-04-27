@@ -95,10 +95,6 @@ export default function PaywallSnapshotsSection() {
 
         <div className="mx-auto mt-10 max-w-6xl text-center sm:mt-12">
           <h3 className="mx-auto max-w-[34ch] text-3xl font-black uppercase leading-[1.16] tracking-[0.05em] text-amber-100 drop-shadow-[0_0_16px_rgba(251,191,36,0.42)] sm:text-4xl md:text-5xl">
-            <span className="block">
-              IF YOU WANT TO MASTER MONEY JOIN
-              <span className="hamburger-attract mx-2 inline-block text-amber-100 drop-shadow-[0_0_26px_rgba(251,191,36,0.9)]">THE SYNDICATE</span>
-            </span>
             <span className="mt-2 block">
               IF YOU WANT
               <span className="hamburger-attract mx-2 inline-block text-amber-200 drop-shadow-[0_0_28px_rgba(251,191,36,0.95)]">SUCCESS</span>

@@ -79,7 +79,7 @@ export default function SiteFooter() {
                   <path d="M18.9 2H22l-6.8 7.7L23.2 22h-6.2l-4.9-6.9L6 22H2.9l7.3-8.3L.8 2h6.4l4.4 6.2L18.9 2Zm-1.1 18h1.7L6.3 3.9H4.5L17.8 20Z" />
                 </svg>
               </a>
-              <a href="https://www.instagram.com/" target="_blank" rel="noreferrer" aria-label="Instagram" className={socialIconClass}>
+              <a href="https://www.instagram.com/followthesyndicate?igsh=MXV5b3E5NnF4YWxjNg==" target="_blank" rel="noreferrer" aria-label="Instagram" className={socialIconClass}>
                 <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 fill-current" aria-hidden>
                   <path d="M12 2.2c3.2 0 3.6 0 4.8.1 1.1.1 1.7.2 2.1.4.6.2 1 .4 1.5.9s.7.9.9 1.5c.2.4.3 1 .4 2.1.1 1.2.1 1.6.1 4.8s0 3.6-.1 4.8c-.1 1.1-.2 1.7-.4 2.1-.2.6-.4 1-.9 1.5s-.9.7-1.5.9c-.4.2-1 .3-2.1.4-1.2.1-1.6.1-4.8.1s-3.6 0-4.8-.1c-1.1-.1-1.7-.2-2.1-.4-.6-.2-1-.4-1.5-.9s-.7-.9-.9-1.5c-.2-.4-.3-1-.4-2.1C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.8c.1-1.1.2-1.7.4-2.1.2-.6.4-1 .9-1.5s.9-.7 1.5-.9c.4-.2 1-.3 2.1-.4 1.2-.1 1.6-.1 4.8-.1Zm0 2.2c-3.1 0-3.5 0-4.7.1-.8 0-1.3.2-1.6.3-.4.1-.7.3-1 .6-.3.3-.5.6-.6 1-.1.3-.2.8-.3 1.6-.1 1.2-.1 1.6-.1 4.7s0 3.5.1 4.7c0 .8.2 1.3.3 1.6.1.4.3.7.6 1 .3.3.6.5 1 .6.3.1.8.2 1.6.3 1.2.1 1.6.1 4.7.1s3.5 0 4.7-.1c.8 0 1.3-.2 1.6-.3.8-.3 1.4-.9 1.7-1.7.1-.3.2-.8.3-1.6.1-1.2.1-1.6.1-4.7s0-3.5-.1-4.7c0-.8-.2-1.3-.3-1.6-.1-.4-.3-.7-.6-1-.3-.3-.6-.5-1-.6-.3-.1-.8-.2-1.6-.3-1.2-.1-1.6-.1-4.7-.1Zm0 3.7A3.9 3.9 0 1 1 12 16a3.9 3.9 0 0 1 0-7.8Zm0 5.6a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4Zm5-6.8a.9.9 0 1 1-1.8 0 .9.9 0 0 1 1.8 0Z" />
                 </svg>
@@ -89,7 +89,7 @@ export default function SiteFooter() {
                   <path d="M13.7 22v-8.2h2.8l.4-3.2h-3.2V8.5c0-.9.3-1.5 1.6-1.5H17V4.1c-.8-.1-1.6-.1-2.4-.1-2.4 0-4 1.5-4 4.1v2.3H8v3.2h2.7V22h3Z" />
                 </svg>
               </a>
-              <a href="https://www.tiktok.com/" target="_blank" rel="noreferrer" aria-label="TikTok" className={socialIconClass}>
+              <a href="https://www.tiktok.com/@followthesyndicate?_r=1&_t=ZG-95id6R01vZh" target="_blank" rel="noreferrer" aria-label="TikTok" className={socialIconClass}>
                 <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 fill-current" aria-hidden>
                   <path d="M14.6 2h2.8c.2 1.8 1.3 3.4 3 4.3V9a7.5 7.5 0 0 1-3-.8v6.6a6 6 0 1 1-6-6h.3v2.8h-.3a3.2 3.2 0 1 0 3.2 3.2V2Z" />
                 </svg>

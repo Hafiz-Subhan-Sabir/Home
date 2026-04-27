@@ -32,6 +32,8 @@ const FEATURED_LOGOS = [
 
 const PROGRAM_IMAGE_BASE = '/assets/programs/cources%20imnages'
 const courseImage = (fileName: string) => `${PROGRAM_IMAGE_BASE}/${encodeURIComponent(fileName)}`
+const INSTAGRAM_URL = 'https://www.instagram.com/followthesyndicate?igsh=MXV5b3E5NnF4YWxjNg=='
+const TIKTOK_URL = 'https://www.tiktok.com/@followthesyndicate?_r=1&_t=ZG-95id6R01vZh'
 
 const FEATURED_PROGRAM_IMAGES = [
   { src: courseImage('make_best_thumbnails_or_cover_image_of_program_wordpress_blog_dystopian_futuristc_cyber_vibes__56y25d9msuef6h5mvdp7_0.png'), alt: 'WordPress Blog' },
@@ -204,9 +206,13 @@ export default async function Home() {
                   style={{ ['--duration' as string]: '48s', ['--gap' as string]: '1rem' }}
                 >
                   {topRowTrack.map((image, index) => (
-                    <article
+                    <a
                       key={`top-${image.src}-${index}`}
-                      className="group relative h-[240px] w-[180px] overflow-hidden rounded-xl border border-amber-300/35 bg-black/35 sm:h-[290px] sm:w-[220px] md:h-[330px] md:w-[250px]"
+                      href={INSTAGRAM_URL}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`Open Instagram: ${image.alt}`}
+                      className="group relative block h-[240px] w-[180px] overflow-hidden rounded-xl border border-amber-300/35 bg-black/35 sm:h-[290px] sm:w-[220px] md:h-[330px] md:w-[250px]"
                     >
                       <Image
                         src={image.src}
@@ -216,7 +222,7 @@ export default async function Home() {
                         className="object-cover object-top transition-transform duration-500 ease-out group-hover:scale-105"
                       />
                       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
-                    </article>
+                    </a>
                   ))}
                 </div>
               </div>
@@ -232,9 +238,13 @@ export default async function Home() {
                   style={{ ['--duration' as string]: '52s', ['--gap' as string]: '1rem' }}
                 >
                   {bottomRowTrack.map((image, index) => (
-                    <article
+                    <a
                       key={`bottom-${image.src}-${index}`}
-                      className="group relative h-[240px] w-[180px] overflow-hidden rounded-xl border border-amber-300/35 bg-black/35 sm:h-[290px] sm:w-[220px] md:h-[330px] md:w-[250px]"
+                      href={TIKTOK_URL}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`Open TikTok: ${image.alt}`}
+                      className="group relative block h-[240px] w-[180px] overflow-hidden rounded-xl border border-amber-300/35 bg-black/35 sm:h-[290px] sm:w-[220px] md:h-[330px] md:w-[250px]"
                     >
                       <Image
                         src={image.src}
@@ -244,7 +254,7 @@ export default async function Home() {
                         className="object-cover object-top transition-transform duration-500 ease-out group-hover:scale-105"
                       />
                       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
-                    </article>
+                    </a>
                   ))}
                 </div>
               </div>

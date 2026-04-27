@@ -110,7 +110,7 @@ export default function CertificatesSection({
       className="relative min-h-[100dvh] w-full overflow-hidden px-4 py-12 sm:px-6 sm:py-16 md:py-20"
     >
       <div className="pointer-events-none absolute inset-0">
-        <Image src="/Assets/c.gif" alt="" aria-hidden fill sizes="100vw" className="object-cover opacity-30" unoptimized />
+        <Image src="/assets/c.gif" alt="" aria-hidden fill sizes="100vw" className="object-cover opacity-30" unoptimized />
         <div className="absolute inset-0 bg-black/70" />
       </div>
       <div

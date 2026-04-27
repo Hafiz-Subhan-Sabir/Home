@@ -7,17 +7,17 @@ import SiteFooter from '@/components/SiteFooter'
 
 const FEATURED_LOGOS = [
   {
-    src: '/Assets/press-forbes.png',
+    src: '/assets/press-forbes.png',
     alt: 'Forbes logo',
     href: 'https://forbes.ge/en/how-the-syndicate-uses-mastery-and-empowerment-to-redefine-business/',
   },
   {
-    src: '/Assets/press-luxury.png',
+    src: '/assets/press-luxury.png',
     alt: 'LLM logo',
     href: 'https://www.luxurylifestylemag.co.uk/money/how-the-syndicate-empowers-individuals-to-master-power-money-and-influence-in-the-money-mastery-course/',
   },
   {
-    src: '/Assets/press-gq.png',
+    src: '/assets/press-gq.png',
     alt: 'GQ logo',
     href: 'https://gq.co.za/wealth/2025-02-10-how-the-syndicate-can-disrupt-the-traditional-model-of-influence-and-education-in-the-digital-age/',
   },
@@ -33,7 +33,7 @@ export default function GlobalBottomSections() {
       <section id="joinNowSection" className="relative overflow-hidden px-4 py-16 sm:px-6 sm:py-20">
         <div className="pointer-events-none absolute inset-0">
           <video autoPlay muted loop playsInline preload="metadata" className="h-full w-full object-cover opacity-55">
-            <source src="/Assets/v.mp4" type="video/mp4" />
+            <source src="/assets/v.mp4" type="video/mp4" />
           </video>
           <div className="absolute inset-0 bg-black/72" />
         </div>

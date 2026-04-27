@@ -11,25 +11,25 @@ type SnapshotItem = {
 
 const SNAPSHOTS: SnapshotItem[] = [
   {
-    src: '/Assets/paywall/programs-snapshot.png',
+    src: '/assets/paywall/programs-snapshot.png',
     title: 'PROGRAM EXECUTION HUB',
     description:
       'Access structured programs, actionable lessons, and progress systems from a personalized dashboard.',
   },
   {
-    src: '/Assets/paywall/syndicate-mode-snapshot.png',
+    src: '/assets/paywall/syndicate-mode-snapshot.png',
     title: 'SYNDICATE MODE DASHBOARD',
     description:
       'Use curated pathways to pick skills that align with your style, goals, and execution level.',
   },
   {
-    src: '/Assets/paywall/dashboard-snapshot.png',
+    src: '/assets/paywall/dashboard-snapshot.png',
     title: 'MEMBER WORKSPACE OVERVIEW',
     description:
       'Stay ahead with trend-driven modules that help you identify opportunities before they saturate.',
   },
   {
-    src: '/Assets/paywall/methods-reference.png',
+    src: '/assets/paywall/methods-reference.png',
     title: 'LIVE CONTENT UPDATES',
     description:
       'Content, resources, and frameworks evolve continuously so your private workspace keeps compounding.',
@@ -42,7 +42,7 @@ export default function PaywallSnapshotsSection() {
       <div className="pointer-events-none absolute inset-0">
         <div className="relative h-full w-full">
           <Image
-            src="/Assets/cb.gif"
+            src="/assets/cb.gif"
             alt=""
             aria-hidden
             fill

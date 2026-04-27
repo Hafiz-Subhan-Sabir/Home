@@ -40,13 +40,13 @@ type ItemDef = {
 }
 
 const DEFAULT_IMAGES: ImageItem[] = [
-  { src: '/Assets/kings.png', alt: 'Featured program one' },
-  { src: '/Assets/kings2.png', alt: 'Featured program two' },
-  { src: '/Assets/kings3.png', alt: 'Featured program three' },
-  { src: '/Assets/pawn.png', alt: 'Featured program four' },
-  { src: '/Assets/pawn1.png', alt: 'Featured program five' },
-  { src: '/Assets/pawn2.png', alt: 'Featured program six' },
-  { src: '/Assets/coin-gold.png', alt: 'Featured program seven' },
+  { src: '/assets/kings.png', alt: 'Featured program one' },
+  { src: '/assets/kings2.png', alt: 'Featured program two' },
+  { src: '/assets/kings3.png', alt: 'Featured program three' },
+  { src: '/assets/pawn.png', alt: 'Featured program four' },
+  { src: '/assets/pawn1.png', alt: 'Featured program five' },
+  { src: '/assets/pawn2.png', alt: 'Featured program six' },
+  { src: '/assets/coin-gold.png', alt: 'Featured program seven' },
 ]
 
 const DEFAULTS = {
@@ -687,7 +687,7 @@ export default function DomeGallery({
                     style={{ borderRadius: `var(--tile-radius, ${imageBorderRadius})`, backfaceVisibility: 'hidden' }}
                   >
                     <Image
-                      src={it.src || '/Assets/logo.png'}
+                      src={it.src || '/assets/logo.png'}
                       draggable={false}
                       alt={it.alt}
                       fill

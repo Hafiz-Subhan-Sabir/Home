@@ -9,26 +9,28 @@ import FeaturedLogosStrip from '@/components/FeaturedLogosStrip'
 import LetterGlitch from '@/components/LetterGlitch'
 import NeonTypingBadge from '@/components/NeonTypingBadge'
 import PaywallSnapshotsSection from '@/components/PaywallSnapshotsSection'
+import { NavApp } from '@/components/NavApp'
+import GlobalBottomSections from '@/components/GlobalBottomSections'
 
 const FEATURED_LOGOS = [
   {
-    src: '/Assets/press-forbes.png',
+    src: '/assets/press-forbes.png',
     alt: 'Forbes logo',
     href: 'https://forbes.ge/en/how-the-syndicate-uses-mastery-and-empowerment-to-redefine-business/',
   },
   {
-    src: '/Assets/press-luxury.png',
+    src: '/assets/press-luxury.png',
     alt: 'LLM logo',
     href: 'https://www.luxurylifestylemag.co.uk/money/how-the-syndicate-empowers-individuals-to-master-power-money-and-influence-in-the-money-mastery-course/',
   },
   {
-    src: '/Assets/press-gq.png',
+    src: '/assets/press-gq.png',
     alt: 'GQ logo',
     href: 'https://gq.co.za/wealth/2025-02-10-how-the-syndicate-can-disrupt-the-traditional-model-of-influence-and-education-in-the-digital-age/',
   },
 ]
 
-const PROGRAM_IMAGE_BASE = '/Assets/programs/cources%20imnages'
+const PROGRAM_IMAGE_BASE = '/assets/programs/cources%20imnages'
 const courseImage = (fileName: string) => `${PROGRAM_IMAGE_BASE}/${encodeURIComponent(fileName)}`
 
 const FEATURED_PROGRAM_IMAGES = [
@@ -90,6 +92,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-[100dvh] w-full min-w-0 overflow-x-clip bg-black">
+      <NavApp />
       <section
         id="heroSection"
         className="relative h-[100dvh] min-h-[100dvh] w-full min-w-0 overflow-hidden"
@@ -120,7 +123,7 @@ export default async function Home() {
         </div>
         <div className="pointer-events-none absolute left-1/2 top-1/2 z-[19] w-full max-w-[min(1020px,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 px-3 sm:px-4">
           <Image
-            src="/Assets/logo.png"
+            src="/assets/logo.png"
             alt="ONEM Logo"
             width={1020}
             height={720}
@@ -183,7 +186,7 @@ export default async function Home() {
             preload="metadata"
             className="h-full w-full object-cover opacity-40"
           >
-            <source src="/Assets/video.mp4" type="video/mp4" />
+            <source src="/assets/video.mp4" type="video/mp4" />
           </video>
         </div>
         <div className="pointer-events-none absolute inset-0 bg-black/55" />
@@ -248,7 +251,7 @@ export default async function Home() {
             </div>
           ) : (
             <p className="mx-auto max-w-2xl text-center text-sm text-amber-100/80 sm:text-base">
-              Add founder images to <code>/public/Assets/founder</code> to display them in this section.
+              Add founder images to <code>/public/assets/founder</code> to display them in this section.
             </p>
           )}
         </div>
@@ -257,8 +260,7 @@ export default async function Home() {
       <PaywallSnapshotsSection />
       <CertificatesSection />
       <FAQSection />
-
-      
+      <GlobalBottomSections />
     </div>
   )
 }

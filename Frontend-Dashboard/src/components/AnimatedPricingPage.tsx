@@ -261,7 +261,7 @@ export function PricingPage({
       )}
     >
       <div className="pointer-events-none absolute inset-0">
-        <Image src="/Assets/g.gif" alt="" aria-hidden fill sizes="100vw" className="object-cover opacity-30" unoptimized />
+        <Image src="/assets/g.gif" alt="" aria-hidden fill sizes="100vw" className="object-cover opacity-30" unoptimized />
         <div className="absolute inset-0 bg-black/55" />
       </div>
       <div className="relative mx-auto flex w-[min(92vw,1900px)] flex-col items-center">

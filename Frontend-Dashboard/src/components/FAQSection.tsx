@@ -142,7 +142,7 @@ export default function FAQSection() {
   return (
     <section ref={sectionRef} id="faq" className={styles.faq}>
       <div className={styles.bgMedia} aria-hidden>
-        <Image src="/Assets/tt.gif" alt="" fill sizes="100vw" className={styles.bgImage} unoptimized />
+        <Image src="/assets/tt.gif" alt="" fill sizes="100vw" className={styles.bgImage} unoptimized />
         <div className={styles.bgOverlay} />
       </div>
       <div className={styles.container}>

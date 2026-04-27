@@ -79,7 +79,7 @@ export default function OurMethodsPage() {
       <section className="relative h-[100dvh] min-h-[100dvh] w-full overflow-hidden border-b border-amber-300/20 px-4 pb-14 pt-[96px] sm:px-6 sm:pb-20 sm:pt-[110px]">
         <div className="pointer-events-none absolute inset-0">
           <Image
-            src="/Assets/cb.gif"
+            src="/assets/cb.gif"
             alt="Our methods background visual"
             fill
             unoptimized
@@ -140,7 +140,7 @@ export default function OurMethodsPage() {
           <div className="methods-float">
             <div className="relative ml-auto w-full max-w-[480px] overflow-hidden rounded-2xl border border-amber-300/45 bg-black/65 shadow-[0_0_48px_rgba(251,191,36,0.24)]">
               <Image
-                src="/Assets/13.png"
+                src="/assets/13.png"
                 alt="Rule Money or Be Ruled"
                 width={816}
                 height={1120}

@@ -15,7 +15,7 @@ const NEON: NeonTheme[] = [
 ]
 
 const imagePath = (fileName: string) =>
-  `/Assets/programs/cources%20imnages/${encodeURIComponent(fileName)}`
+  `/assets/programs/cources%20imnages/${encodeURIComponent(fileName)}`
 
 const PRICING_TIERS = [
   { price: '£149', oldPrice: '£299' },

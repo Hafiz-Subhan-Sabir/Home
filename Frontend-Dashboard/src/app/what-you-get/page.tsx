@@ -72,7 +72,7 @@ export default function WhatYouGetPage() {
       <section className="relative h-[100dvh] min-h-[100dvh] w-full overflow-hidden border-b border-cyan-300/20 px-4 pb-14 pt-[96px] sm:px-6 sm:pb-16 sm:pt-[110px]">
         <div className="pointer-events-none absolute inset-0">
           <video autoPlay muted loop playsInline preload="metadata" className="h-[100dvh] w-full object-cover opacity-100">
-            <source src="/Assets/video.mp4" type="video/mp4" />
+            <source src="/assets/video.mp4" type="video/mp4" />
           </video>
           <div className="absolute inset-0 bg-gradient-to-b from-[#020617]/84 to-[#02050b]/92" />
         </div>

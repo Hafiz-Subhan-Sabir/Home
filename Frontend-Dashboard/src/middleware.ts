@@ -35,7 +35,16 @@ const sameHostHint =
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const authCookie = request.cookies.get("simple_auth_session")?.value;
+  const publicMarketingPath =
+    pathname === "/" ||
+    pathname === "/what-you-get" ||
+    pathname.startsWith("/what-you-get/") ||
+    pathname === "/our-methods" ||
+    pathname.startsWith("/our-methods/") ||
+    pathname === "/programs" ||
+    pathname.startsWith("/programs/");
   const authFreePath =
+    publicMarketingPath ||
     pathname === "/login" ||
     pathname.startsWith("/login/") ||
     pathname === "/signup" ||

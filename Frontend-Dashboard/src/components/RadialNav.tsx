@@ -51,6 +51,20 @@ function getSlotRadius(): number {
 }
 
 function getSlots(radius: number) {
+  if (typeof window !== 'undefined') {
+    const w = window.innerWidth
+    if (w < 640) {
+      // Custom mobile layout with extra spacing between left/right button pairs.
+      return [
+        { x: 0, y: -118 },   // Home
+        { x: -110, y: -18 }, // Programs
+        { x: 110, y: -18 },  // What You Get
+        { x: -110, y: 90 },  // Join Now
+        { x: 110, y: 90 },   // Our Methods
+      ]
+    }
+  }
+
   return Array.from({ length: 5 }, (_, i) => {
     const angle = (i / 5) * Math.PI * 2 - Math.PI / 2
     return { x: radius * Math.cos(angle), y: radius * Math.sin(angle) }
@@ -338,9 +352,9 @@ export function RadialNav({
                         onClick={() => onSelect(it.id)}
                         className={[
                           'nav-card-lightning pointer-events-auto cursor-pointer relative z-10',
-                          'min-w-[120px] max-w-[min(200px,85vw)] rounded-lg border-2 px-3 py-2 overflow-visible',
-                          'text-[10px] font-semibold uppercase tracking-[0.08em] whitespace-nowrap',
-                          'sm:min-w-[160px] sm:px-4 sm:py-2.5 sm:text-[12px]',
+                          'min-w-[136px] max-w-[min(220px,88vw)] rounded-lg border-2 px-3.5 py-2.5 overflow-visible',
+                          'text-[12px] font-bold uppercase tracking-[0.1em] whitespace-nowrap',
+                          'sm:min-w-[160px] sm:px-4 sm:py-2.5 sm:text-[13px]',
                           'transition-[filter,box-shadow] duration-500 ease-in-out',
                         ].join(' ')}
                         style={{
@@ -351,6 +365,7 @@ export function RadialNav({
                             activeId === it.id
                               ? `0 0 16px rgba(255,255,255,0.32), 0 0 30px ${theme.glow}, inset 0 0 8px ${theme.glow}`
                               : `0 0 12px ${theme.glow}, inset 0 0 6px ${theme.glow}`,
+                          textShadow: '0 0 10px rgba(255,255,255,0.3)',
                           transition: 'border-color 280ms ease, box-shadow 280ms ease',
                         }}
                       >

@@ -139,6 +139,14 @@ export function PlaylistCardsSection({
     () => visiblePlaylists.filter((pl) => pl.category === "business_model"),
     [visiblePlaylists]
   );
+  const mobilePairedRows = useMemo(() => {
+    const maxLen = Math.max(businessPsychologyPlaylists.length, businessModelPlaylists.length);
+    return Array.from({ length: maxLen }, (_, idx) => ({
+      psychology: businessPsychologyPlaylists[idx] ?? null,
+      model: businessModelPlaylists[idx] ?? null,
+      idx,
+    }));
+  }, [businessPsychologyPlaylists, businessModelPlaylists]);
 
   const renderPlaylistCard = (pl: StreamPlaylistListItem, j: number) => {
     const grad = PROGRAM_CARD_BACKGROUNDS[j % PROGRAM_CARD_BACKGROUNDS.length];
@@ -251,32 +259,57 @@ export function PlaylistCardsSection({
       ) : null}
 
       {visiblePlaylists.length > 0 ? (
-        <div className="mx-auto grid max-w-[1800px] grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] xl:items-start">
-          <div className="space-y-3">
-            <div className="text-center font-mono text-[15px] font-extrabold uppercase tracking-[0.2em] text-fuchsia-100 [text-shadow:0_0_10px_rgba(232,121,249,0.7),0_0_26px_rgba(232,121,249,0.82)] sm:text-[17px]">
-              {CATEGORY_LABELS.business_psychology}
+        <>
+          <div className="mx-auto w-full max-w-[1800px] xl:hidden">
+            <div className="mb-3 grid grid-cols-2 gap-3">
+              <div className="text-center font-mono text-[12px] font-extrabold uppercase tracking-[0.16em] text-fuchsia-100 [text-shadow:0_0_10px_rgba(232,121,249,0.7)] sm:text-[13px]">
+                {CATEGORY_LABELS.business_psychology}
+              </div>
+              <div className="text-center font-mono text-[12px] font-extrabold uppercase tracking-[0.16em] text-cyan-100 [text-shadow:0_0_10px_rgba(103,232,249,0.7)] sm:text-[13px]">
+                {CATEGORY_LABELS.business_model}
+              </div>
             </div>
-            <div className="h-px w-full bg-gradient-to-r from-transparent via-fuchsia-300/90 to-transparent shadow-[0_0_14px_rgba(232,121,249,0.55)]" />
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
-              {businessPsychologyPlaylists.map((pl, j) => renderPlaylistCard(pl, j))}
+            <div className="relative space-y-4">
+              <div
+                className="pointer-events-none absolute bottom-0 left-1/2 top-0 z-10 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-[#f5c814]/90 to-transparent shadow-[0_0_10px_rgba(245,200,20,0.55)]"
+                aria-hidden
+              />
+              {mobilePairedRows.map((row) => (
+                <div key={`mobile-row-${row.idx}`} className="grid grid-cols-2 gap-3 sm:gap-4">
+                  {row.psychology ? renderPlaylistCard(row.psychology, row.idx * 2) : <div aria-hidden />}
+                  {row.model ? renderPlaylistCard(row.model, row.idx * 2 + 1) : <div aria-hidden />}
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="relative h-5 w-full xl:h-full xl:w-4" aria-hidden>
-            <div className="absolute left-0 top-1/2 h-[2px] w-full -translate-y-1/2 bg-gradient-to-r from-transparent via-[#f5c814] to-transparent shadow-[0_0_14px_rgba(245,200,20,0.9),0_0_34px_rgba(245,200,20,0.65)] xl:hidden" />
-            <div className="absolute left-1/2 top-0 hidden h-full w-[2px] -translate-x-1/2 bg-gradient-to-b from-transparent via-[#f5c814] to-transparent shadow-[0_0_16px_rgba(245,200,20,0.95),0_0_40px_rgba(245,200,20,0.7)] xl:block" />
-          </div>
+          <div className="mx-auto hidden max-w-[1800px] grid-cols-1 gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] xl:items-start">
+            <div className="space-y-3">
+              <div className="text-center font-mono text-[15px] font-extrabold uppercase tracking-[0.2em] text-fuchsia-100 [text-shadow:0_0_10px_rgba(232,121,249,0.7),0_0_26px_rgba(232,121,249,0.82)] sm:text-[17px]">
+                {CATEGORY_LABELS.business_psychology}
+              </div>
+              <div className="h-px w-full bg-gradient-to-r from-transparent via-fuchsia-300/90 to-transparent shadow-[0_0_14px_rgba(232,121,249,0.55)]" />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+                {businessPsychologyPlaylists.map((pl, j) => renderPlaylistCard(pl, j))}
+              </div>
+            </div>
 
-          <div className="space-y-3">
-            <div className="text-center font-mono text-[15px] font-extrabold uppercase tracking-[0.2em] text-cyan-100 [text-shadow:0_0_10px_rgba(103,232,249,0.7),0_0_26px_rgba(103,232,249,0.82)] sm:text-[17px]">
-              {CATEGORY_LABELS.business_model}
+            <div className="relative h-5 w-full xl:h-full xl:w-4" aria-hidden>
+              <div className="absolute left-0 top-1/2 h-[2px] w-full -translate-y-1/2 bg-gradient-to-r from-transparent via-[#f5c814] to-transparent shadow-[0_0_14px_rgba(245,200,20,0.9),0_0_34px_rgba(245,200,20,0.65)] xl:hidden" />
+              <div className="absolute left-1/2 top-0 hidden h-full w-[2px] -translate-x-1/2 bg-gradient-to-b from-transparent via-[#f5c814] to-transparent shadow-[0_0_16px_rgba(245,200,20,0.95),0_0_40px_rgba(245,200,20,0.7)] xl:block" />
             </div>
-            <div className="h-px w-full bg-gradient-to-r from-transparent via-cyan-300/90 to-transparent shadow-[0_0_14px_rgba(103,232,249,0.55)]" />
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
-              {businessModelPlaylists.map((pl, j) => renderPlaylistCard(pl, j + businessPsychologyPlaylists.length))}
+
+            <div className="space-y-3">
+              <div className="text-center font-mono text-[15px] font-extrabold uppercase tracking-[0.2em] text-cyan-100 [text-shadow:0_0_10px_rgba(103,232,249,0.7),0_0_26px_rgba(103,232,249,0.82)] sm:text-[17px]">
+                {CATEGORY_LABELS.business_model}
+              </div>
+              <div className="h-px w-full bg-gradient-to-r from-transparent via-cyan-300/90 to-transparent shadow-[0_0_14px_rgba(103,232,249,0.55)]" />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+                {businessModelPlaylists.map((pl, j) => renderPlaylistCard(pl, j + businessPsychologyPlaylists.length))}
+              </div>
             </div>
           </div>
-        </div>
+        </>
       ) : null}
     </section>
   );

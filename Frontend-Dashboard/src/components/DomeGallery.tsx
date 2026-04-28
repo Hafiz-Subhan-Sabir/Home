@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useGesture } from '@use-gesture/react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -157,6 +157,8 @@ export default function DomeGallery({
   const openingRef = useRef(false)
   const openStartedAtRef = useRef(0)
   const lastDragEndAt = useRef(0)
+  const activeSegmentsRef = useRef(segments)
+  const [activeSegments, setActiveSegments] = useState(segments)
 
   const scrollLockedRef = useRef(false)
   const lockScroll = useCallback(() => {
@@ -171,7 +173,7 @@ export default function DomeGallery({
     document.body.classList.remove('dg-scroll-lock')
   }, [])
 
-  const items = useMemo(() => buildItems(images, segments), [images, segments])
+  const items = useMemo(() => buildItems(images, activeSegments), [images, activeSegments])
 
   const applyTransform = (xDeg: number, yDeg: number) => {
     const el = sphereRef.current
@@ -190,6 +192,10 @@ export default function DomeGallery({
       if (!cr) return
       const w = Math.max(1, cr.width)
       const h = Math.max(1, cr.height)
+      const isMobile = w < 640
+      const nextSegments = isMobile ? Math.max(10, Math.round(segments * 0.56)) : segments
+      activeSegmentsRef.current = nextSegments
+      setActiveSegments((prev) => (prev === nextSegments ? prev : nextSegments))
       const minDim = Math.min(w, h)
       const maxDim = Math.max(w, h)
       const aspect = w / h
@@ -212,12 +218,17 @@ export default function DomeGallery({
       }
       let radius = basis * fit
       radius = Math.min(radius, h * 1.35)
-      radius = clamp(radius, minRadius, maxRadius)
+      const effectiveMinRadius = minRadius
+      radius = clamp(radius, effectiveMinRadius, maxRadius)
       lockedRadiusRef.current = Math.round(radius)
 
       const viewerPad = Math.max(8, Math.round(minDim * padFactor))
+      const effectiveTileInsetPx = isMobile ? Math.max(8, Math.round(tileInsetPx * 0.62)) : tileInsetPx
+      root.style.setProperty('--segments-x', `${nextSegments}`)
+      root.style.setProperty('--segments-y', `${nextSegments}`)
       root.style.setProperty('--radius', `${lockedRadiusRef.current}px`)
       root.style.setProperty('--viewer-pad', `${viewerPad}px`)
+      root.style.setProperty('--tile-inset', `${effectiveTileInsetPx}px`)
       root.style.setProperty('--overlay-blur-color', overlayBlurColor)
       root.style.setProperty('--tile-radius', imageBorderRadius)
       root.style.setProperty('--enlarge-radius', openedImageBorderRadius)
@@ -226,7 +237,7 @@ export default function DomeGallery({
     })
     ro.observe(root)
     return () => ro.disconnect()
-  }, [fit, fitBasis, minRadius, maxRadius, padFactor, overlayBlurColor, grayscale, imageBorderRadius, openedImageBorderRadius])
+  }, [fit, fitBasis, minRadius, maxRadius, padFactor, overlayBlurColor, grayscale, imageBorderRadius, openedImageBorderRadius, tileInsetPx])
 
   const stopInertia = useCallback(() => {
     if (inertiaRAF.current) {
@@ -315,7 +326,7 @@ export default function DomeGallery({
     const offsetY = getDataNumber(parent, 'offsetY', 0)
     const sizeX = getDataNumber(parent, 'sizeX', 2)
     const sizeY = getDataNumber(parent, 'sizeY', 2)
-    const parentRot = computeItemBaseRotation(offsetX, offsetY, sizeX, sizeY, segments)
+    const parentRot = computeItemBaseRotation(offsetX, offsetY, sizeX, sizeY, activeSegmentsRef.current)
     const parentY = normalizeAngle(parentRot.rotateY)
     const globalY = normalizeAngle(rotationRef.current.y)
     let rotY = -(parentY + globalY) % 360
@@ -398,7 +409,7 @@ export default function DomeGallery({
       }
       overlay.addEventListener('transitionend', onFirstEnd)
     }
-  }, [clickHref, enlargeTransitionMs, grayscale, lockScroll, openedImageBorderRadius, openedImageHeight, openedImageWidth, router, segments, unlockScroll])
+  }, [clickHref, enlargeTransitionMs, grayscale, lockScroll, openedImageBorderRadius, openedImageHeight, openedImageWidth, router, unlockScroll])
 
   useGesture(
     {
@@ -465,6 +476,31 @@ export default function DomeGallery({
     },
     { target: mainRef, eventOptions: { passive: false } }
   )
+
+  useEffect(() => {
+    // Mobile safety: if a touch/pointer cancel happens, ensure drag mode is reset
+    // so auto-rotation can continue.
+    const resetDragState = () => {
+      draggingRef.current = false
+      startPosRef.current = null
+      movedRef.current = false
+      cancelTapRef.current = false
+      tapTargetRef.current = null
+      unlockScroll()
+    }
+
+    window.addEventListener('pointerup', resetDragState)
+    window.addEventListener('pointercancel', resetDragState)
+    window.addEventListener('touchend', resetDragState)
+    window.addEventListener('touchcancel', resetDragState)
+
+    return () => {
+      window.removeEventListener('pointerup', resetDragState)
+      window.removeEventListener('pointercancel', resetDragState)
+      window.removeEventListener('touchend', resetDragState)
+      window.removeEventListener('touchcancel', resetDragState)
+    }
+  }, [unlockScroll])
 
   useEffect(() => {
     const scrim = scrimRef.current
@@ -704,8 +740,8 @@ export default function DomeGallery({
 
           <div className="pointer-events-none absolute inset-0 z-[3] m-auto" style={{ backgroundImage: `radial-gradient(rgba(235, 235, 235, 0) 65%, var(--overlay-blur-color, ${overlayBlurColor}) 100%)` }} />
           <div className="pointer-events-none absolute inset-0 z-[3] m-auto" style={{ WebkitMaskImage: `radial-gradient(rgba(235, 235, 235, 0) 70%, var(--overlay-blur-color, ${overlayBlurColor}) 90%)`, maskImage: `radial-gradient(rgba(235, 235, 235, 0) 70%, var(--overlay-blur-color, ${overlayBlurColor}) 90%)`, backdropFilter: 'blur(3px)' }} />
-          <div className="pointer-events-none absolute left-0 right-0 top-0 z-[5] h-[120px] rotate-180" style={{ background: `linear-gradient(to bottom, transparent, var(--overlay-blur-color, ${overlayBlurColor}))` }} />
-          <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-[5] h-[120px]" style={{ background: `linear-gradient(to bottom, transparent, var(--overlay-blur-color, ${overlayBlurColor}))` }} />
+          <div className="pointer-events-none absolute left-0 right-0 top-0 z-[5] h-0 rotate-180 sm:h-[120px]" style={{ background: `linear-gradient(to bottom, transparent, var(--overlay-blur-color, ${overlayBlurColor}))` }} />
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-[5] h-0 sm:h-[120px]" style={{ background: `linear-gradient(to bottom, transparent, var(--overlay-blur-color, ${overlayBlurColor}))` }} />
 
           <div ref={viewerRef} className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center" style={{ padding: 'var(--viewer-pad)' }}>
             <div ref={scrimRef} className="scrim pointer-events-none absolute inset-0 z-10 opacity-0 transition-opacity duration-500" style={{ background: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(3px)' }} />

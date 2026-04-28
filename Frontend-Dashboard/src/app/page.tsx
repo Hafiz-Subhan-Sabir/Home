@@ -185,7 +185,7 @@ export default async function Home() {
         </div>
         <div className="relative z-10 h-[100dvh] min-h-[100dvh] w-full min-w-0" aria-hidden />
       </section>
-      <section className="relative flex h-[100dvh] min-h-[100dvh] w-full min-w-0 items-center overflow-hidden bg-[#050508] px-0 py-0">
+      <section className="relative flex h-auto min-h-0 w-full min-w-0 items-start overflow-hidden bg-[#050508] px-0 py-4 sm:h-[100dvh] sm:min-h-[100dvh] sm:items-center sm:py-0">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <iframe
             src="https://player.vimeo.com/video/988922121?autoplay=1&muted=1&loop=1&background=1"
@@ -200,28 +200,28 @@ export default async function Home() {
         <div className="pointer-events-none absolute inset-0 opacity-[0.08]" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(0,0,0,0.5) 2px, rgba(0,0,0,0.5) 4px)' }} />
 
         <div className="relative z-10 h-full w-full px-0">
-          <h2 className="mb-10 text-center text-2xl font-black uppercase sm:mb-12 sm:text-3xl md:text-4xl lg:text-5xl">
+          <h2 className="mb-3 text-center text-2xl font-black uppercase sm:mb-12 sm:text-3xl md:text-4xl lg:text-5xl">
             <span className="bg-gradient-to-r from-amber-200 via-amber-300 to-amber-500 bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(251,191,36,0.35)]">
               Featured PROGRAMS
             </span>
           </h2>
-          <div className="h-[calc(100dvh-9rem)] min-h-[520px] w-full min-w-0 overflow-hidden rounded-none bg-transparent">
+          <div className="h-[clamp(300px,52dvh,420px)] w-full min-w-0 overflow-hidden rounded-none bg-transparent sm:h-[calc(100dvh-9rem)] sm:min-h-[520px]">
             <DomeGallery
               images={FEATURED_PROGRAM_IMAGES}
-              fit={0.5}
-              minRadius={300}
+              fit={0.58}
+              minRadius={260}
               segments={18}
               dragDampening={4.8}
               grayscale={false}
               autoRotateSpeedDeg={1.8}
-              tileInsetPx={24}
+              tileInsetPx={12}
               clickHref="/programs"
             />
           </div>
         </div>
       </section>
 
-      <section className="relative h-[100dvh] min-h-[100dvh] w-full min-w-0 overflow-hidden bg-black">
+      <section className="relative h-auto min-h-0 w-full min-w-0 overflow-hidden bg-black py-8 sm:h-[100dvh] sm:min-h-[100dvh] sm:py-0">
         <div className="pointer-events-none absolute inset-0">
           <video
             autoPlay
@@ -235,7 +235,7 @@ export default async function Home() {
           </video>
         </div>
         <div className="pointer-events-none absolute inset-0 bg-black/68" />
-        <div className="relative z-10 mx-auto flex h-full w-full max-w-[1700px] flex-col justify-center px-4 py-12 sm:px-6 md:px-8">
+        <div className="relative z-10 mx-auto flex h-auto w-full max-w-[1700px] flex-col justify-start px-4 py-0 sm:h-full sm:justify-center sm:px-6 sm:py-12 md:px-8">
           {founderImages.length > 0 ? (
             <div className="space-y-4 sm:space-y-5">
               <h3 className="mb-3 px-1 text-center text-2xl font-black uppercase tracking-[0.16em] text-amber-100 drop-shadow-[0_0_14px_rgba(251,191,36,0.35)] sm:mb-4 sm:text-3xl md:text-4xl">

@@ -417,8 +417,8 @@ export default function CertificatesSection({
                   </div>
 
                   <div className="mt-3 rounded-lg border border-fuchsia-300/45 bg-black/20 px-3 py-2.5 sm:px-4 sm:py-3">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-cyan-100/65">Credential Overview</p>
-                    <p className="mt-1.5 text-[12px] leading-relaxed text-cyan-50/95 sm:mt-2 sm:text-[14px]">
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-cyan-100/75 sm:text-[12px]">Credential Overview</p>
+                    <p className="mt-1.5 text-[14px] leading-relaxed text-cyan-50/95 sm:mt-2 sm:text-[16px]">
                       Awarded for high-performance completion of the AI Automations & Digital Mastery track with verified execution milestones,
                       strategic delivery consistency, and secure credential validation through the Syndicate token registry.
                       This token confirms advanced operational readiness in automation systems, precision execution, and performance accountability.

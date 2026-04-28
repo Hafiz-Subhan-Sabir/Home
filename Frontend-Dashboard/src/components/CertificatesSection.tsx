@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useInView } from 'framer-motion'
 import { Award, CheckCircle2, Download, Shield } from 'lucide-react'
 import Image from 'next/image'
-import { QRCodeSVG } from 'qrcode.react'
 
 type Metric = {
   value: number
@@ -360,7 +359,7 @@ export default function CertificatesSection({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[120] flex items-center justify-center bg-transparent p-4 backdrop-blur-sm"
             onClick={() => setIsPreviewOpen(false)}
           >
             <motion.div
@@ -369,116 +368,89 @@ export default function CertificatesSection({
               exit={{ opacity: 0, scale: 0.96, y: 16 }}
               transition={{ duration: 0.28 }}
               onClick={(event) => event.stopPropagation()}
-              className="relative w-full max-w-5xl overflow-hidden border border-red-500/40 bg-[#1f232f] p-3 sm:p-6"
+              className="relative max-h-[95vh] w-full max-w-[980px] overflow-y-auto bg-transparent p-1 sm:p-2"
               style={{
-                boxShadow:
-                  '0 0 0 1px rgba(239,68,68,0.25), 0 0 90px rgba(239,68,68,0.22), 0 0 140px rgba(220,38,38,0.18), inset 0 0 70px rgba(220,38,38,0.08)',
-                clipPath: 'polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px), 0 18px)',
+                boxShadow: '0 0 90px rgba(217,70,239,0.25), 0 0 130px rgba(56,189,248,0.18)',
               }}
             >
-              <div className="pointer-events-none absolute inset-0 opacity-[0.12]" style={{ backgroundImage: 'linear-gradient(rgba(239,68,68,0.28) 1px, transparent 1px), linear-gradient(90deg, rgba(239,68,68,0.28) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
-              <div className="pointer-events-none absolute inset-0 opacity-[0.2]" style={{ background: 'radial-gradient(circle at 20% 10%, rgba(239,68,68,0.32), transparent 40%), radial-gradient(circle at 80% 90%, rgba(156,163,175,0.18), transparent 44%)' }} />
+              <div className="pointer-events-none absolute inset-0 opacity-[0.16]" style={{ backgroundImage: 'linear-gradient(rgba(217,70,239,0.24) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.24) 1px, transparent 1px)', backgroundSize: '26px 26px' }} />
+              <div className="pointer-events-none absolute inset-0 opacity-[0.22]" style={{ background: 'radial-gradient(circle at 24% 12%, rgba(217,70,239,0.26), transparent 42%), radial-gradient(circle at 80% 86%, rgba(56,189,248,0.18), transparent 46%)' }} />
 
-              <div className="relative flex min-h-[560px] flex-col overflow-hidden border border-red-300/35 bg-[#1f232f] p-5 sm:min-h-[640px] sm:p-8">
-                <div className="pointer-events-none absolute left-0 top-0 h-0 w-0 border-l-[140px] border-t-[110px] border-l-red-600/80 border-t-transparent sm:border-l-[220px] sm:border-t-[170px]" />
-                <div className="pointer-events-none absolute right-0 top-0 h-0 w-0 border-r-[140px] border-t-[110px] border-r-red-600/80 border-t-transparent sm:border-r-[220px] sm:border-t-[170px]" />
-                <div className="pointer-events-none absolute bottom-0 left-0 h-0 w-0 border-b-[90px] border-l-[110px] border-b-red-600/70 border-l-transparent sm:border-b-[130px] sm:border-l-[170px]" />
-                <div className="pointer-events-none absolute bottom-0 right-0 h-0 w-0 border-b-[90px] border-r-[110px] border-b-red-600/70 border-r-transparent sm:border-b-[130px] sm:border-r-[170px]" />
+              <div className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-[22px] border border-cyan-200/90 bg-[#070a1a] p-3 sm:p-5 shadow-[0_0_24px_rgba(56,189,248,0.6),0_0_70px_rgba(56,189,248,0.38),0_0_110px_rgba(217,70,239,0.3)]">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_24%,rgba(59,130,246,0.45),transparent_34%),radial-gradient(circle_at_80%_22%,rgba(249,115,22,0.22),transparent_35%),radial-gradient(circle_at_20%_78%,rgba(236,72,153,0.2),transparent_38%),linear-gradient(180deg,#070a1a_0%,#0c1130_45%,#111735_100%)]" />
+                <div className="pointer-events-none absolute inset-0 opacity-30 [background-image:radial-gradient(rgba(255,255,255,0.32)_1px,transparent_1px)] [background-size:4px_4px]" />
+                <div className="pointer-events-none absolute inset-[8px] rounded-[18px] border border-cyan-200/95 shadow-[0_0_20px_rgba(56,189,248,0.85),0_0_52px_rgba(56,189,248,0.62),0_0_90px_rgba(217,70,239,0.35)]" />
+                <div className="pointer-events-none absolute inset-[18px] rounded-[12px] border border-cyan-300/75 shadow-[inset_0_0_16px_rgba(56,189,248,0.25)]" />
+                <div className="pointer-events-none absolute left-[20px] top-[20px] h-12 w-12 border-l-2 border-t-2 border-cyan-300/90" />
+                <div className="pointer-events-none absolute right-[20px] top-[20px] h-12 w-12 border-r-2 border-t-2 border-cyan-300/90" />
+                <div className="pointer-events-none absolute bottom-[20px] left-[20px] h-12 w-12 border-b-2 border-l-2 border-cyan-300/90" />
+                <div className="pointer-events-none absolute bottom-[20px] right-[20px] h-12 w-12 border-b-2 border-r-2 border-cyan-300/90" />
 
-                <div className="relative flex items-start justify-center gap-4">
-                  <div className="flex flex-col items-center gap-2 text-center">
+                <div className="relative z-10 flex flex-col px-2 pb-2 pt-3 text-cyan-100 sm:px-3 sm:pb-3 sm:pt-4">
+                  <div className="mt-2 ml-2 flex flex-wrap items-center gap-1.5 sm:mt-3 sm:ml-8 sm:gap-3">
                     <Image
                       src="/assets/logo.webp"
                       alt="Syndicate logo"
-                      width={180}
-                      height={88}
-                      className="h-auto w-[120px] object-contain brightness-125 contrast-125 sm:w-[160px]"
+                      width={150}
+                      height={75}
+                      className="h-auto w-[88px] object-contain brightness-125 contrast-125 sm:w-[130px]"
                       priority={false}
                     />
-                    <p
-                      className="text-[10px] font-semibold uppercase tracking-[0.28em] sm:text-xs"
-                      style={{ color: '#f2c830', textShadow: '0 0 10px rgba(242,200,48,0.25)' }}
-                    >
-                      Money · Power · Honour · Freedom
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsPreviewOpen(false)}
-                    className="absolute right-0 top-0 border border-red-300/55 px-3 py-1 text-xs uppercase tracking-[0.2em] text-red-100 transition hover:bg-red-400/10"
-                  >
-                    Close
-                  </button>
-                </div>
-
-                <div className="relative mt-5 text-center">
-                  <div className="mx-auto w-full max-w-[760px]">
-                    <h3
-                      className="text-3xl font-bold uppercase tracking-[0.05em] text-[#f3e5cc] sm:text-5xl"
-                      style={{ fontFamily: 'Georgia, Times New Roman, serif', textShadow: '0 0 1px rgba(243,229,204,0.75)' }}
-                    >
-                      Certificate
-                    </h3>
-                    <p
-                      className="mt-1 text-xl font-semibold normal-case text-[#d6b27a] sm:text-2xl"
-                      style={{ fontFamily: 'Georgia, Times New Roman, serif' }}
-                    >
-                      of achievement
-                    </p>
-                    <div className="mt-3 flex items-center justify-center gap-4">
-                      <span className="h-px w-20 bg-gradient-to-r from-transparent to-[#d6b27a]/80 sm:w-28" />
-                      <span className="text-sm text-[#d6b27a]/90">✦</span>
-                      <span className="h-px w-20 bg-gradient-to-l from-transparent to-[#d6b27a]/80 sm:w-28" />
+                    <div>
+                      <p className="text-[9px] uppercase tracking-[0.14em] text-[#fdd02f] sm:text-[13px] sm:tracking-[0.2em]">Money · Power · Honour · Freedom</p>
                     </div>
                   </div>
-                  <h4
-                    className="mt-7 text-3xl font-semibold uppercase tracking-[0.14em] sm:text-5xl"
-                    style={{ color: '#f2c830', textShadow: '0 0 20px rgba(242,200,48,0.32)' }}
-                  >
-                    Ayaan Sterling
-                  </h4>
-                  <div className="mx-auto mt-2 h-[2px] w-[72%] max-w-xl bg-gradient-to-r from-transparent via-red-400 to-transparent" />
-                  <p className="mx-auto mt-5 max-w-3xl text-base leading-relaxed text-white sm:text-lg">
-                    Successfully completed the <span className="font-semibold text-white">AI Automations & Digital Mastery Program</span>,
-                    passed advanced performance evaluation, and fulfilled strategic milestones required by The Syndicate.
-                    The recipient demonstrated strong capability in AI-assisted workflow systems, automation planning,
-                    execution discipline, and measurable optimization across real project simulations.
-                    This credential confirms readiness for high-impact digital execution, collaborative delivery,
-                    and accountable performance under direct mentor review.
-                  </p>
-                </div>
 
-                <div className="mt-auto grid items-start gap-4 pt-10 sm:grid-cols-[1fr_auto]">
-                  <div className="space-y-1.5 text-sm text-white sm:text-base">
-                    <p><span style={{ color: '#fdd02f' }}>Track:</span> AI Automations & Digital Mastery</p>
-                    <p><span style={{ color: '#fdd02f' }}>Issued on:</span> {issuedOn}</p>
-                    <p className="font-mono text-sm text-white"><span style={{ color: '#fdd02f' }}>Certificate ID:</span> {certificateId}</p>
+                  <div className="mt-2 text-center sm:mt-3">
+                    <h2 className="mt-1 text-[28px] font-semibold uppercase leading-[0.95] tracking-[0.04em] text-cyan-100 sm:text-[42px] sm:tracking-[0.06em]" style={{ textShadow: '0 0 18px rgba(56,189,248,0.95), 0 0 30px rgba(249,115,22,0.45)' }}>
+                      SYN TOKEN
+                    </h2>
+                    <p className="mt-0.5 text-[9px] uppercase tracking-[0.22em] text-cyan-100/85 sm:mt-1 sm:text-[11px] sm:tracking-[0.3em]">of Achievement</p>
                   </div>
 
-                  <div className="inline-flex flex-col items-center gap-1.5 self-start border border-red-300/35 p-1.5">
-                    <QRCodeSVG
-                      value={verifyUrl}
-                      size={96}
-                      bgColor="#111111"
-                      fgColor="#ffffff"
-                      level="H"
-                      includeMargin
-                    />
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-red-100/85">Unique QR</p>
+                  <div className="mt-3 rounded-xl border border-fuchsia-300/55 bg-cyan-400/5 p-2.5 shadow-[0_0_18px_rgba(56,189,248,0.24)] sm:mt-4 sm:p-4 [clip-path:polygon(10px_0,calc(100%-10px)_0,100%_10px,100%_calc(100%-10px),calc(100%-10px)_100%,10px_100%,0_calc(100%-10px),0_10px)]">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-100/80">Token Owner</p>
+                    <h3 className="mt-1 text-[36px] font-semibold uppercase tracking-[0.04em] text-[#fdd02f] sm:text-4xl sm:tracking-[0.08em]" style={{ textShadow: '0 0 16px rgba(253,208,47,0.45)' }}>
+                      Ayaan Sterling
+                    </h3>
+                    <p className="mt-1.5 text-[11px] uppercase tracking-[0.1em] text-cyan-100/75 sm:mt-2 sm:text-[13px] sm:tracking-[0.18em]">AI Automations & Digital Mastery</p>
                   </div>
-                </div>
 
-                <div className="mt-3 grid gap-4 border-t border-red-300/35 pt-4 sm:grid-cols-3 sm:items-end">
-                  <div />
-                  <div className="text-center">
-                    <p className="text-xl font-semibold uppercase tracking-[0.12em] text-slate-100">Syndicate Award</p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.2em] text-red-100/80">Elite Credential</p>
+                  <div className="mt-3 rounded-lg border border-fuchsia-300/45 bg-black/20 px-3 py-2.5 sm:px-4 sm:py-3">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-cyan-100/65">Credential Overview</p>
+                    <p className="mt-1.5 text-[12px] leading-relaxed text-cyan-50/95 sm:mt-2 sm:text-[14px]">
+                      Awarded for high-performance completion of the AI Automations & Digital Mastery track with verified execution milestones,
+                      strategic delivery consistency, and secure credential validation through the Syndicate token registry.
+                      This token confirms advanced operational readiness in automation systems, precision execution, and performance accountability.
+                      Holder authorization is recognized across Syndicate partner ecosystems for verified digital capability.
+                    </p>
                   </div>
-                  <div />
-                </div>
 
-                <div className="mt-5 text-center text-[10px] uppercase tracking-[0.2em] text-red-100/75">
-                  Verified credential record in Syndicate secure registry
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] sm:mt-4 sm:text-[11px]">
+                    <div className="rounded-lg border border-fuchsia-300/45 bg-black/25 p-2 shadow-[0_0_10px_rgba(56,189,248,0.2)]">
+                      <p className="uppercase tracking-[0.15em] text-cyan-100/70">Issued</p>
+                      <p className="mt-1 text-cyan-100">{issuedOn}</p>
+                    </div>
+                    <div className="rounded-lg border border-fuchsia-300/45 bg-black/25 p-2 shadow-[0_0_10px_rgba(132,204,22,0.18)]">
+                      <p className="uppercase tracking-[0.15em] text-cyan-100/70">Status</p>
+                      <p className="mt-1 font-semibold text-lime-300 drop-shadow-[0_0_8px_rgba(132,204,22,0.6)]">Verified</p>
+                    </div>
+                    <div className="col-span-2 rounded-lg border border-fuchsia-300/55 bg-black/35 p-2 font-mono shadow-[0_0_12px_rgba(56,189,248,0.28)]">
+                      <p className="uppercase tracking-[0.15em] text-cyan-100/70">Token ID</p>
+                      <p className="mt-1 text-[13px] font-semibold tracking-[0.06em] text-cyan-50 sm:text-[15px]">{certificateId}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-col items-center justify-center pb-2 sm:mt-5 sm:pb-3">
+                    <div className="relative flex h-28 w-28 items-center justify-center rounded-full border border-cyan-200/85 bg-cyan-400/10 shadow-[0_0_20px_rgba(56,189,248,0.55),0_0_48px_rgba(56,189,248,0.35)] sm:h-44 sm:w-44">
+                      <div className="absolute inset-3 rounded-full border border-cyan-200/70 shadow-[0_0_12px_rgba(56,189,248,0.45)]" />
+                      <div className="absolute inset-8 rounded-full border border-cyan-300/45" />
+                      <Award className="h-16 w-16 text-cyan-50" style={{ filter: 'drop-shadow(0 0 16px rgba(56,189,248,1))' }} />
+                    </div>
+                    <p className="mt-3 text-[10px] uppercase tracking-[0.2em] text-cyan-100/80 sm:tracking-[0.24em]">Syndicate Credential Token</p>
+                    <div className="mt-2 h-[2px] w-40 rounded-full bg-cyan-300/75 blur-[0.5px]" />
+                  </div>
+
                 </div>
               </div>
             </motion.div>

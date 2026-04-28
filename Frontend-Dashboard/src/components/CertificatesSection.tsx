@@ -381,10 +381,10 @@ export default function CertificatesSection({
                 <div className="pointer-events-none absolute inset-0 opacity-30 [background-image:radial-gradient(rgba(255,255,255,0.32)_1px,transparent_1px)] [background-size:4px_4px]" />
                 <div className="pointer-events-none absolute inset-[8px] rounded-[18px] border border-cyan-200/95 shadow-[0_0_20px_rgba(56,189,248,0.85),0_0_52px_rgba(56,189,248,0.62),0_0_90px_rgba(217,70,239,0.35)]" />
                 <div className="pointer-events-none absolute inset-[18px] rounded-[12px] border border-cyan-300/75 shadow-[inset_0_0_16px_rgba(56,189,248,0.25)]" />
-                <div className="pointer-events-none absolute left-[20px] top-[20px] h-12 w-12 border-l-2 border-t-2 border-cyan-300/90" />
-                <div className="pointer-events-none absolute right-[20px] top-[20px] h-12 w-12 border-r-2 border-t-2 border-cyan-300/90" />
-                <div className="pointer-events-none absolute bottom-[20px] left-[20px] h-12 w-12 border-b-2 border-l-2 border-cyan-300/90" />
-                <div className="pointer-events-none absolute bottom-[20px] right-[20px] h-12 w-12 border-b-2 border-r-2 border-cyan-300/90" />
+                <div className="pointer-events-none absolute left-[20px] top-[20px] h-12 w-12 border-l-2 border-t-2 border-red-400/90" />
+                <div className="pointer-events-none absolute right-[20px] top-[20px] h-12 w-12 border-r-2 border-t-2 border-red-400/90" />
+                <div className="pointer-events-none absolute bottom-[20px] left-[20px] h-12 w-12 border-b-2 border-l-2 border-red-400/90" />
+                <div className="pointer-events-none absolute bottom-[20px] right-[20px] h-12 w-12 border-b-2 border-r-2 border-red-400/90" />
 
                 <div className="relative z-10 flex flex-col px-2 pb-2 pt-3 text-cyan-100 sm:px-3 sm:pb-3 sm:pt-4">
                   <div className="mt-2 ml-2 flex flex-wrap items-center gap-1.5 sm:mt-3 sm:ml-8 sm:gap-3">

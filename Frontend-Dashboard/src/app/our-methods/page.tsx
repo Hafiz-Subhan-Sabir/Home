@@ -169,7 +169,7 @@ export default function OurMethodsPage() {
   return (
     <div className="min-h-[100dvh] w-full bg-black">
       <NavApp />
-      <section className="relative min-h-[100dvh] w-full overflow-hidden px-4 pb-14 pt-[96px] sm:px-6 sm:pb-20 sm:pt-[110px]">
+      <section className="relative h-[100dvh] min-h-[100dvh] w-[100vw] overflow-hidden px-[clamp(0.75rem,2vw,1.75rem)] pb-4 pt-[74px] sm:pb-6 sm:pt-[86px]">
         <div className="pointer-events-none absolute inset-0">
           <video autoPlay muted loop playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover opacity-64 saturate-125 contrast-110">
             <source src="/assets/video.mp4" type="video/mp4" />
@@ -180,9 +180,9 @@ export default function OurMethodsPage() {
           <div className="absolute inset-0 opacity-[0.07] [background-image:repeating-linear-gradient(0deg,transparent_0px,transparent_2px,rgba(255,255,255,0.12)_2px,rgba(255,255,255,0.12)_3px)]" />
         </div>
 
-        <div className="relative z-10 mx-auto flex min-h-[calc(100dvh-120px)] max-w-[96rem] items-center">
-          <div className="grid w-full items-start gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:gap-10">
-            <div className="methods-fade-up methods-panel-pulse rounded-2xl border border-zinc-700/45 bg-black/30 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_0_72px_rgba(56,236,255,0.12)] sm:p-8">
+        <div className="relative z-10 mx-auto flex h-[calc(100dvh-92px)] w-full max-w-none items-stretch">
+          <div className="grid h-full w-full items-stretch gap-4 lg:grid-cols-[1.05fr_0.95fr] lg:gap-6">
+            <div className="methods-fade-up methods-panel-pulse h-full overflow-hidden rounded-2xl border border-zinc-700/45 bg-black/30 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_0_72px_rgba(56,236,255,0.12)] sm:p-6">
               <div className="mb-5 flex flex-wrap gap-2">
                 <span className="inline-flex items-center rounded-md border border-cyan-300/60 bg-cyan-300/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-100">
                   Live Ops
@@ -194,7 +194,7 @@ export default function OurMethodsPage() {
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-200/80">
                 The Syndicate // Operational Doctrine
               </p>
-              <h1 className="methods-hero-title mt-4 text-5xl font-black leading-[0.88] text-white sm:text-6xl lg:text-7xl">
+              <h1 className="methods-hero-title mt-4 text-[clamp(2.5rem,4.8vw,4.7rem)] font-black leading-[0.9] text-white">
                 <span className="bg-gradient-to-r from-red-200 via-violet-200 to-cyan-100 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(56,236,255,0.22)]">
                   Our Methods
                 </span>
@@ -218,10 +218,10 @@ export default function OurMethodsPage() {
                   ))}
                 </div>
               </div>
-              <p className="mt-6 max-w-3xl text-xl leading-relaxed text-zinc-100/92 sm:text-2xl">
+              <p className="mt-5 max-w-4xl text-[clamp(1rem,1.45vw,1.45rem)] leading-relaxed text-zinc-100/92">
                 Greatness is engineered through systems, not mood. This protocol turns strategy into repeatable execution and execution into measurable results.
               </p>
-              <p className="mt-4 max-w-3xl text-xl leading-relaxed text-zinc-200/88 sm:text-2xl">
+              <p className="mt-3 max-w-4xl text-[clamp(1rem,1.45vw,1.45rem)] leading-relaxed text-zinc-200/88">
                 Master money, influence, and decision-making with ethical discipline so your growth compounds without destroying your identity.
               </p>
 
@@ -237,7 +237,7 @@ export default function OurMethodsPage() {
                 </a>
               </div>
 
-              <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {OUTCOME_METRICS.map((item, index) => {
                   const theme = CYBER_THEMES[index % CYBER_THEMES.length]
                   return (
@@ -256,10 +256,10 @@ export default function OurMethodsPage() {
             </div>
 
             <div className="methods-float">
-              <div className="methods-panel-pulse rounded-2xl border border-cyan-300/40 bg-black/45 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_0_66px_rgba(56,236,255,0.18)] sm:p-7">
+              <div className="methods-panel-pulse h-full overflow-y-auto rounded-2xl border border-cyan-300/40 bg-black/45 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_0_66px_rgba(56,236,255,0.18)] sm:p-6">
                 <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-200/80">Command Console</p>
-                <h2 className="mt-3 text-4xl font-semibold text-cyan-100 sm:text-5xl">Win The Loop.</h2>
-                <p className="mt-3 text-lg leading-relaxed text-zinc-200/88 sm:text-xl">
+                <h2 className="mt-3 text-[clamp(2rem,3.6vw,3.3rem)] font-semibold text-cyan-100">Win The Loop.</h2>
+                <p className="mt-3 text-[clamp(1rem,1.3vw,1.25rem)] leading-relaxed text-zinc-200/88">
                   Learn the system, deploy immediately, and stack consistent wins. The interface is cinematic, but the method is practical and real.
                 </p>
                 <div className="mt-4 grid grid-cols-2 gap-3">

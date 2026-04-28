@@ -1,10 +1,13 @@
-/** JSON `{ complete, single, exclusive }` from Django after OTP — used by Affiliate portal fetches. */
+/** JSON referral ids from Django after OTP — used by Affiliate portal fetches. */
 export const AFFILIATE_REFERRAL_IDS_STORAGE_KEY = "syndicate:affiliate_referral_ids_v1";
 
 export type StoredAffiliateReferralIds = {
   complete: string;
   single: string;
-  exclusive: string;
+  pawn: string;
+  king: string;
+  // Legacy key kept for backward compatibility with older payloads.
+  exclusive?: string;
 };
 
 export function readStoredAffiliateReferralIds(): StoredAffiliateReferralIds | null {
@@ -18,7 +21,18 @@ export function readStoredAffiliateReferralIds(): StoredAffiliateReferralIds | n
     return {
       complete,
       single: typeof j.single === "string" && j.single.trim() ? j.single.trim() : complete,
-      exclusive: typeof j.exclusive === "string" && j.exclusive.trim() ? j.exclusive.trim() : complete,
+      pawn:
+        typeof j.pawn === "string" && j.pawn.trim()
+          ? j.pawn.trim()
+          : typeof j.single === "string" && j.single.trim()
+            ? j.single.trim()
+            : complete,
+      king:
+        typeof j.king === "string" && j.king.trim()
+          ? j.king.trim()
+          : typeof j.exclusive === "string" && j.exclusive.trim()
+            ? j.exclusive.trim()
+            : complete,
     };
   } catch {
     return null;

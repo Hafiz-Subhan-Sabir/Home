@@ -4422,3 +4422,32 @@ body {
   animation: cyberChipFloat 3.4s ease-in-out infinite, cyberChipGlow 2.8s ease-in-out infinite;
 }
 
+@keyframes whatYouGetCoinSpin {
+  from {
+    transform: translateY(-50%) rotate(0deg);
+  }
+  to {
+    transform: translateY(-50%) rotate(360deg);
+  }
+}
+
+@keyframes whatYouGetCoinZoom {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes whatYouGetKeyFloat {
+  0%,
+  100% {
+    transform: translateY(-50%);
+  }
+  50% {
+    transform: translateY(calc(-50% - 16px));
+  }
+}
+

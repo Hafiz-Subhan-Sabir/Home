@@ -23,7 +23,7 @@ export type AffiliateStats = {
     lead_emails: string[];
   };
   current_section?: {
-    section: "complete" | "single" | "exclusive";
+    section: "complete" | "single" | "pawn" | "king" | "exclusive";
     affiliate_id: string;
     click_count: number;
     lead_count: number;
@@ -36,9 +36,9 @@ export type AffiliateStats = {
     lead_emails: string[];
   };
   by_section?: Record<
-    "complete" | "single" | "exclusive",
+    "complete" | "single" | "pawn" | "king",
     {
-      section: "complete" | "single" | "exclusive";
+      section: "complete" | "single" | "pawn" | "king" | "exclusive";
       affiliate_id: string;
       click_count: number;
       lead_count: number;
@@ -95,7 +95,9 @@ export type AuthLoginResponse = {
     referral_ids: {
       complete: string;
       single: string;
-      exclusive: string;
+      pawn?: string;
+      king?: string;
+      exclusive?: string;
     };
   };
 };

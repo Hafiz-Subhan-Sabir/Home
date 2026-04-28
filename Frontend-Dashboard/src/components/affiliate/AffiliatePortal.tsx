@@ -9,7 +9,7 @@ import {
 } from "@/lib/affiliateApi";
 import type { AffiliateStats, AffiliateVisitor } from "@/lib/affiliateTypes";
 
-type ProgramKind = "complete" | "single" | "exclusive";
+type ProgramKind = "complete" | "single" | "pawn" | "king";
 type ToastTone = "good" | "warn" | "bad" | "info";
 
 function formatWhen(iso: string | null): string {
@@ -37,7 +37,9 @@ function formatAgo(iso: string | null): string {
 type ReferralIds = {
   complete: string;
   single: string;
-  exclusive: string;
+  pawn: string;
+  king: string;
+  exclusive?: string;
 };
 
 type AffiliatePortalProps = {
@@ -49,7 +51,6 @@ type AffiliatePortalProps = {
 };
 
 export default function AffiliatePortal({ displayName, referralIds, onLogout, embedded = false }: AffiliatePortalProps) {
-  const toastTimerRef = useRef<number | null>(null);
   const [affiliateId, setAffiliateId] = useState(() => referralIds?.complete?.trim() || "subhan-x91");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,11 +63,11 @@ export default function AffiliatePortal({ displayName, referralIds, onLogout, em
   const [generatedLinks, setGeneratedLinks] = useState<Record<ProgramKind, string>>({
     complete: "",
     single: "",
-    exclusive: "",
+    pawn: "",
+    king: "",
   });
   const [showProgramOptions, setShowProgramOptions] = useState(false);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ id: number; message: string; tone: ToastTone } | null>(null);
   const overallStats = useMemo(() => {
     if (!stats) return null;
     return (
@@ -108,16 +109,16 @@ export default function AffiliatePortal({ displayName, referralIds, onLogout, em
   const earningsValue = Number(overallStats?.earnings_total ?? "0") || 0;
   const earningsCardToneClass =
     earningsValue <= 0
-      ? "border-[rgba(255,59,59,0.65)] shadow-[0_0_18px_rgba(255,59,59,0.28)]"
+      ? "border-[rgba(255,59,59,0.72)] bg-[linear-gradient(180deg,rgba(255,59,59,0.12),rgba(0,0,0,0.3))] shadow-[0_0_22px_rgba(255,59,59,0.35)]"
       : earningsValue < 100
-        ? "border-[rgba(255,215,0,0.7)] shadow-[0_0_18px_rgba(255,215,0,0.3)]"
-        : "border-[rgba(0,255,122,0.72)] shadow-[0_0_26px_rgba(0,255,122,0.4)]";
+        ? "border-[rgba(255,215,0,0.78)] bg-[linear-gradient(180deg,rgba(255,215,0,0.12),rgba(0,0,0,0.3))] shadow-[0_0_22px_rgba(255,215,0,0.34)]"
+        : "border-[rgba(0,255,122,0.78)] bg-[linear-gradient(180deg,rgba(0,255,122,0.12),rgba(0,0,0,0.3))] shadow-[0_0_26px_rgba(0,255,122,0.44)]";
 
   const [conversionRing, setConversionRing] = useState(0);
   useEffect(() => {
     const c = referralIds?.complete?.trim();
     if (c) setAffiliateId(c);
-  }, [referralIds?.complete, referralIds?.single, referralIds?.exclusive]);
+  }, [referralIds?.complete, referralIds?.single, referralIds?.pawn, referralIds?.king, referralIds?.exclusive]);
 
   useEffect(() => {
     // Smoothly animate ring to new value.
@@ -126,18 +127,7 @@ export default function AffiliatePortal({ displayName, referralIds, onLogout, em
     return () => window.clearTimeout(t);
   }, [conversionRate]);
 
-  useEffect(() => {
-    return () => {
-      if (toastTimerRef.current) {
-        window.clearTimeout(toastTimerRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    showToast(`Welcome ${displayName ?? "Affiliate"}.`, "info");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [displayName]);
+  useEffect(() => {}, [displayName]);
 
   const linkTemplateMap = useMemo<Record<ProgramKind, string>>(() => {
     const base =
@@ -145,22 +135,18 @@ export default function AffiliatePortal({ displayName, referralIds, onLogout, em
       (typeof window !== "undefined" ? window.location.origin : "http://127.0.0.1:3000");
     const completeId = encodeURIComponent((referralIds?.complete ?? affiliateId).trim() || "affiliate");
     const singleId = encodeURIComponent((referralIds?.single ?? affiliateId).trim() || "affiliate");
-    const exclusiveId = encodeURIComponent((referralIds?.exclusive ?? affiliateId).trim() || "affiliate");
+    const pawnId = encodeURIComponent((referralIds?.pawn ?? referralIds?.single ?? affiliateId).trim() || "affiliate");
+    const kingId = encodeURIComponent((referralIds?.king ?? referralIds?.exclusive ?? affiliateId).trim() || "affiliate");
     return {
       complete: `${base}/affiliate/${completeId}?offer=complete-programs&tier=standard`,
       single: `${base}/affiliate/${singleId}?offer=single-program&program=program-01`,
-      exclusive: `${base}/affiliate/${exclusiveId}?offer=exclusive&creator=gussy-bahi&drop=01`,
+      pawn: `${base}/affiliate/${pawnId}?offer=the-pawn&tier=pawn`,
+      king: `${base}/affiliate/${kingId}?offer=the-king&tier=king`,
     };
   }, [affiliateId, referralIds]);
   const activeReferralLink = generatedLinks[programKind];
 
-  function showToast(message: string, tone: ToastTone = "info") {
-    setToast({ id: Date.now(), message, tone });
-    if (toastTimerRef.current) {
-      window.clearTimeout(toastTimerRef.current);
-    }
-    toastTimerRef.current = window.setTimeout(() => setToast(null), 2200);
-  }
+  function showToast(_message: string, _tone: ToastTone = "info") {}
 
   useEffect(() => {
     if (!referralIds) return;
@@ -282,24 +268,31 @@ export default function AffiliatePortal({ displayName, referralIds, onLogout, em
       <main
         className={
           embedded
-            ? "cut-frame cyber-frame glass-dark premium-gold-border gold-stroke mx-auto flex h-auto min-h-[min(58vh,560px)] max-h-[min(82vh,920px)] w-full max-w-none flex-col overflow-hidden p-4 sm:p-5"
-            : "cut-frame cyber-frame glass-dark premium-gold-border gold-stroke mx-auto flex h-[calc(100vh-1.5rem)] w-full max-w-[1800px] flex-col overflow-hidden p-4 sm:h-[calc(100vh-2.5rem)] sm:p-5"
+            ? "cut-frame glass-dark premium-gold-border gold-stroke mx-auto flex h-auto min-h-[min(58vh,560px)] max-h-[min(82vh,920px)] w-full max-w-none flex-col overflow-hidden p-4 sm:p-5"
+            : "cut-frame glass-dark premium-gold-border gold-stroke mx-auto flex h-[calc(100vh-1.5rem)] w-full max-w-[1800px] flex-col overflow-hidden p-4 sm:h-[calc(100vh-2.5rem)] sm:p-5"
         }
       >
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-xl font-black uppercase tracking-[0.08em] text-[#f7d774] sm:text-2xl">Affiliate Dashboard</h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">Affiliate ID: {affiliateId}</div>
-            <button
-              type="button"
-              onClick={() => void refreshData()}
-              disabled={loading}
-              className="cut-frame-sm hud-hover-glow btn-gold px-4 py-2 text-xs font-black uppercase tracking-[0.14em] disabled:cursor-not-allowed disabled:opacity-70"
+            <div
+              className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] ${
+                dashboardSignal.tone === "good" ? "badge-live" : dashboardSignal.tone === "warn" ? "badge-warn" : "badge-danger"
+              }`}
             >
-              {loading ? "Loading..." : "Sync Core"}
-            </button>
+              <span
+                className={`inline-flex h-2.5 w-2.5 animate-pulse rounded-full ${
+                  dashboardSignal.tone === "good"
+                    ? "bg-[#00ff7a] shadow-[0_0_10px_rgba(0,255,122,0.85)]"
+                    : dashboardSignal.tone === "warn"
+                      ? "bg-[#ffd74d] shadow-[0_0_10px_rgba(212,175,55,0.8)]"
+                      : "bg-[#ff3b3b] shadow-[0_0_10px_rgba(255,59,59,0.85)]"
+                }`}
+              />
+              {dashboardSignal.label}
+            </div>
             {onLogout ? (
               <button
                 type="button"
@@ -313,40 +306,13 @@ export default function AffiliatePortal({ displayName, referralIds, onLogout, em
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto pr-1 no-scrollbar">
-          {error ? (
-            <div className="mb-4 cut-frame-sm badge-danger px-3 py-2 text-sm">
-              {error}
-            </div>
-          ) : null}
+          {error ? null : null}
 
-          <div className="cut-frame-sm border border-[rgba(255,215,0,0.34)] bg-black/45 p-4">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="text-[12px] font-black uppercase tracking-[0.2em] text-white/70">Programs</div>
-                <div className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/55">Scope: Selected Program</div>
-              </div>
-              <div
-                className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] ${
-                  dashboardSignal.tone === "good" ? "badge-live" : dashboardSignal.tone === "warn" ? "badge-warn" : "badge-danger"
-                }`}
-              >
-                <span
-                  className={`inline-flex h-2.5 w-2.5 animate-pulse rounded-full ${
-                    dashboardSignal.tone === "good"
-                      ? "bg-[#00ff7a] shadow-[0_0_10px_rgba(0,255,122,0.85)]"
-                      : dashboardSignal.tone === "warn"
-                        ? "bg-[#ffd74d] shadow-[0_0_10px_rgba(212,175,55,0.8)]"
-                        : "bg-[#ff3b3b] shadow-[0_0_10px_rgba(255,59,59,0.85)]"
-                  }`}
-                />
-                {dashboardSignal.label}
-              </div>
-            </div>
-
-            <div className="mx-auto w-full max-w-[1720px] cut-frame-sm border border-[rgba(255,215,0,0.25)] bg-black/30 p-3">
+          <div className="cut-frame-sm border border-cyan-300/55 bg-black/45 p-4 shadow-[0_0_0_1px_rgba(56,236,255,0.4),0_0_34px_rgba(56,236,255,0.2)]">
+            <div className="mx-auto w-full max-w-[1720px] cut-frame-sm border border-violet-300/45 bg-black/30 p-3 shadow-[0_0_0_1px_rgba(193,120,255,0.28),0_0_28px_rgba(193,120,255,0.16)]">
               <div className="flex flex-col gap-2 md:flex-row md:items-end">
                 <div className="flex-1">
-                  <div className="mb-1 h-[25px] text-[10px] font-black uppercase tracking-[0.16em] text-white/60">Referral Link</div>
+                  <div className="mb-1 h-[25px] text-[10px] font-black uppercase tracking-[0.16em] text-white/70">Referral Link</div>
                   <input
                     value={activeReferralLink}
                     placeholder="Generate a referral link"
@@ -357,27 +323,30 @@ export default function AffiliatePortal({ displayName, referralIds, onLogout, em
                         : "border-[rgba(255,215,0,0.38)] bg-black/70"
                     }`}
                   />
+                  <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white/50">
+                    Format: emailname_card_6digits (stored once, reused on next logins)
+                  </div>
                 </div>
                 {activeReferralLink ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setShowProgramOptions((prev) => !prev)}
-                      className="cut-frame-sm hud-hover-glow btn-gold cta-shimmer cta-glow-gold px-4 py-2 text-xs font-black uppercase tracking-[0.16em]"
+                      className="cut-frame-sm hud-hover-glow border border-amber-300/80 bg-[linear-gradient(180deg,rgba(255,198,64,0.2),rgba(38,22,0,0.45))] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-amber-100 shadow-[0_0_0_1px_rgba(255,198,64,0.7),0_0_24px_rgba(255,198,64,0.35)] transition duration-300 hover:scale-[1.02] hover:border-amber-200/95 hover:shadow-[0_0_0_1px_rgba(255,220,115,0.9),0_0_34px_rgba(255,210,90,0.5)]"
                     >
-                      Get Referal
+                      Get Referral
                     </button>
                     <button
                       type="button"
                       onClick={() => copyLink(activeReferralLink)}
-                      className="cut-frame-sm hud-hover-glow btn-gold bg-black/40 px-4 py-2 text-xs font-black uppercase tracking-[0.16em]"
+                      className="cut-frame-sm hud-hover-glow border border-cyan-300/80 bg-[linear-gradient(180deg,rgba(56,236,255,0.2),rgba(0,24,34,0.45))] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-cyan-100 shadow-[0_0_0_1px_rgba(56,236,255,0.7),0_0_24px_rgba(56,236,255,0.35)] transition duration-300 hover:scale-[1.02] hover:border-cyan-200/95 hover:shadow-[0_0_0_1px_rgba(130,245,255,0.9),0_0_34px_rgba(56,236,255,0.5)]"
                     >
                       Copy
                     </button>
                     <button
                       type="button"
                       onClick={() => shareLink(activeReferralLink)}
-                      className="cut-frame-sm hud-hover-glow btn-cyan bg-black/40 px-4 py-2 text-xs font-black uppercase tracking-[0.16em]"
+                      className="cut-frame-sm hud-hover-glow border border-violet-300/80 bg-[linear-gradient(180deg,rgba(193,120,255,0.2),rgba(25,6,38,0.45))] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-violet-100 shadow-[0_0_0_1px_rgba(193,120,255,0.7),0_0_24px_rgba(193,120,255,0.35)] transition duration-300 hover:scale-[1.02] hover:border-violet-200/95 hover:shadow-[0_0_0_1px_rgba(221,173,255,0.9),0_0_34px_rgba(193,120,255,0.5)]"
                     >
                       Share
                     </button>
@@ -386,95 +355,92 @@ export default function AffiliatePortal({ displayName, referralIds, onLogout, em
                   <button
                     type="button"
                     onClick={() => setShowProgramOptions((prev) => !prev)}
-                    className="cut-frame-sm hud-hover-glow btn-gold cta-shimmer cta-glow-gold px-4 py-2 text-sm font-bold uppercase tracking-[0.14em]"
+                    className="cut-frame-sm hud-hover-glow border border-amber-300/85 bg-[linear-gradient(180deg,rgba(255,198,64,0.22),rgba(38,22,0,0.5))] px-4 py-2 text-sm font-bold uppercase tracking-[0.14em] text-amber-100 shadow-[0_0_0_1px_rgba(255,198,64,0.72),0_0_26px_rgba(255,198,64,0.38)] transition duration-300 hover:scale-[1.02] hover:border-amber-200/95 hover:shadow-[0_0_0_1px_rgba(255,220,115,0.9),0_0_36px_rgba(255,210,90,0.52)]"
                   >
-                    Get Referal
+                    Get Referral
                   </button>
                 )}
               </div>
             </div>
 
             {showProgramOptions ? (
-              <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-1">
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
                 <button
                   type="button"
                   onClick={() => selectProgramAndGenerate("complete")}
-                  className={`cut-frame-sm hud-hover-glow border px-3 py-3 text-left text-[12px] font-black uppercase tracking-[0.16em] ${
+                  className={`cut-frame-sm border px-3 py-3 text-left text-[12px] font-black uppercase tracking-[0.16em] ${
                     programKind === "complete"
-                      ? "hud-selected-glow border-[rgba(255,215,0,0.8)] bg-[rgba(255,215,0,0.08)] text-gold"
-                      : "border-[rgba(255,215,0,0.35)] bg-black/40 text-white/80"
-                  } cta-program cta-program-gold cta-shimmer cta-glow-gold`}
+                      ? "border-amber-300/95 bg-amber-300/10 text-amber-100 shadow-[0_0_0_1px_rgba(255,198,64,0.85),0_0_26px_rgba(255,198,64,0.55),0_0_70px_rgba(255,198,64,0.24)]"
+                      : "border-amber-300/55 bg-[linear-gradient(180deg,rgba(255,198,64,0.08),rgba(0,0,0,0.35))] text-amber-100/85 shadow-[0_0_16px_rgba(255,198,64,0.18)]"
+                  }`}
                 >
-                  Complete Programs Affiliate
+                  Full Bundle
                 </button>
                 <button
                   type="button"
                   onClick={() => selectProgramAndGenerate("single")}
-                  className={`cut-frame-sm hud-hover-glow border px-3 py-3 text-left text-[12px] font-black uppercase tracking-[0.16em] ${
+                  className={`cut-frame-sm border px-3 py-3 text-left text-[12px] font-black uppercase tracking-[0.16em] ${
                     programKind === "single"
-                      ? "hud-selected-glow border-[rgba(0,191,255,0.6)] bg-[rgba(0,191,255,0.08)] text-[#bfefff]"
-                      : "border-[rgba(255,215,0,0.35)] bg-black/40 text-white/80"
-                  } cta-program cta-program-cyan cta-shimmer cta-glow-cyan`}
+                      ? "border-cyan-300/95 bg-cyan-300/10 text-cyan-100 shadow-[0_0_0_1px_rgba(56,236,255,0.85),0_0_26px_rgba(56,236,255,0.55),0_0_70px_rgba(56,236,255,0.24)]"
+                      : "border-cyan-300/55 bg-[linear-gradient(180deg,rgba(56,236,255,0.08),rgba(0,0,0,0.35))] text-cyan-100/85 shadow-[0_0_16px_rgba(56,236,255,0.18)]"
+                  }`}
                 >
                   Single Program
                 </button>
                 <button
                   type="button"
-                  onClick={() => selectProgramAndGenerate("exclusive")}
-                  className={`cut-frame-sm hud-hover-glow border px-3 py-3 text-left text-[12px] font-black uppercase tracking-[0.16em] ${
-                    programKind === "exclusive"
-                      ? "hud-selected-glow border-[rgba(0,255,122,0.55)] bg-[rgba(0,255,122,0.07)] text-[#b4ffd8]"
-                      : "border-[rgba(255,215,0,0.35)] bg-black/40 text-white/80"
-                  } cta-program cta-program-green cta-shimmer cta-glow-green`}
+                  onClick={() => selectProgramAndGenerate("pawn")}
+                  className={`cut-frame-sm border px-3 py-3 text-left text-[12px] font-black uppercase tracking-[0.16em] ${
+                    programKind === "pawn"
+                      ? "border-lime-300/95 bg-lime-300/10 text-lime-100 shadow-[0_0_0_1px_rgba(120,255,90,0.85),0_0_26px_rgba(120,255,90,0.55),0_0_70px_rgba(120,255,90,0.24)]"
+                      : "border-lime-300/55 bg-[linear-gradient(180deg,rgba(120,255,90,0.08),rgba(0,0,0,0.35))] text-lime-100/85 shadow-[0_0_16px_rgba(120,255,90,0.18)]"
+                  }`}
                 >
-                  Exclusive Content of Gussy Bahi
+                  The Pawn
+                </button>
+                <button
+                  type="button"
+                  onClick={() => selectProgramAndGenerate("king")}
+                  className={`cut-frame-sm border px-3 py-3 text-left text-[12px] font-black uppercase tracking-[0.16em] ${
+                    programKind === "king"
+                      ? "border-violet-300/95 bg-violet-300/10 text-violet-100 shadow-[0_0_0_1px_rgba(193,120,255,0.85),0_0_26px_rgba(193,120,255,0.55),0_0_70px_rgba(193,120,255,0.24)]"
+                      : "border-violet-300/55 bg-[linear-gradient(180deg,rgba(193,120,255,0.08),rgba(0,0,0,0.35))] text-violet-100/85 shadow-[0_0_16px_rgba(193,120,255,0.18)]"
+                  }`}
+                >
+                  The King
                 </button>
               </div>
             ) : null}
           </div>
 
-          <div className="mb-2 mt-4 text-[10px] font-black uppercase tracking-[0.16em] text-white/55">Scope: Overall</div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <Card title="Total Clicks" value={overallStats?.click_count ?? "-"} />
-            <Card title="Total Leads" value={overallStats?.lead_count ?? "-"} />
-            <Card title="Total Sales" value={overallStats?.sale_count ?? 0} />
-            <ConversionRateCard value={conversionRing} />
-            <Card title="Points" value={overallStats?.point_total ?? 0} />
-            <Card title="Earnings" value={`$${overallStats?.earnings_total ?? "0.00"}`} toneClassName={earningsCardToneClass} />
-          </div>
-
-          <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
-            <div className="cut-frame-sm border border-[rgba(255,215,0,0.34)] bg-black/45 p-4">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/70">Latest Activity</h3>
-              <div className="mt-3 space-y-2 text-sm">
-                <InfoRow label="Last Click At" value={formatWhen(overallStats?.last_click_at ?? null)} />
-                <InfoRow label="Last Lead At" value={formatWhen(overallStats?.last_lead_at ?? null)} />
-              </div>
-            </div>
-
-            <div className="cut-frame-sm border border-[rgba(255,215,0,0.34)] bg-black/45 p-4">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/70">Lead Emails</h3>
-              <div className="mt-3 flex max-h-28 flex-wrap gap-2 overflow-y-auto no-scrollbar">
-                {(overallStats?.lead_emails ?? []).length > 0 ? (
-                  overallStats?.lead_emails.map((email) => (
-                    <span key={email} className="rounded border border-[rgba(255,215,0,0.35)] bg-[rgba(255,215,0,0.08)] px-2 py-1 text-xs text-[#f8e3a9]">
-                      {email}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-sm text-white/50">No leads captured yet.</span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-5 cut-frame-sm border border-[rgba(255,215,0,0.34)] bg-black/45 p-4">
+          <div className="mt-4 cut-frame-sm border border-violet-300/55 bg-black/45 p-3 shadow-[0_0_0_1px_rgba(193,120,255,0.34),0_0_36px_rgba(193,120,255,0.18)] sm:p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <div className="text-xs font-black uppercase tracking-[0.2em] text-white/70">Systematic Revenue Flow</div>
-              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#86ffbf]">Auto Pipeline</div>
+              <div className="text-xs font-black uppercase tracking-[0.2em] text-white/70">Performance Snapshot</div>
             </div>
-            <div className="relative cut-frame-sm border border-[rgba(255,215,0,0.28)] bg-black/35 p-4">
-              <div className="grid grid-cols-[84px_1fr] gap-x-3 gap-y-3">
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
+              {[
+                { label: "Clicks", value: overallStats?.click_count ?? "-", tone: "border-cyan-300/70 bg-[linear-gradient(180deg,rgba(56,236,255,0.1),rgba(0,0,0,0.3))] shadow-[0_0_22px_rgba(56,236,255,0.28)]" },
+                { label: "Leads", value: overallStats?.lead_count ?? "-", tone: "border-violet-300/70 bg-[linear-gradient(180deg,rgba(193,120,255,0.1),rgba(0,0,0,0.3))] shadow-[0_0_22px_rgba(193,120,255,0.28)]" },
+                { label: "Sales", value: overallStats?.sale_count ?? 0, tone: "border-lime-300/70 bg-[linear-gradient(180deg,rgba(120,255,90,0.1),rgba(0,0,0,0.3))] shadow-[0_0_22px_rgba(120,255,90,0.28)]" },
+                { label: "Rate", value: `${conversionRing}%`, tone: "border-amber-300/75 bg-[linear-gradient(180deg,rgba(255,198,64,0.12),rgba(0,0,0,0.3))] shadow-[0_0_22px_rgba(255,198,64,0.3)]" },
+                { label: "Points", value: overallStats?.point_total ?? 0, tone: "border-fuchsia-300/70 bg-[linear-gradient(180deg,rgba(232,121,249,0.1),rgba(0,0,0,0.3))] shadow-[0_0_22px_rgba(232,121,249,0.28)]" },
+                { label: "Earnings", value: `$${overallStats?.earnings_total ?? "0.00"}`, tone: earningsCardToneClass },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className={`cut-frame-sm border px-3 py-2 ${item.tone ?? "border-[rgba(255,215,0,0.28)] bg-black/35"}`}
+                >
+                  <div className="text-[10px] font-black uppercase tracking-[0.14em] text-white/58">{item.label}</div>
+                  <div className="mt-1 text-xl font-black text-[#f8d778]">{item.value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 relative cut-frame-sm border border-cyan-300/45 bg-black/30 p-3 shadow-[0_0_0_1px_rgba(56,236,255,0.28),0_0_24px_rgba(56,236,255,0.12)]">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/60">Revenue Flow</div>
+              </div>
+              <div className="grid grid-cols-[74px_1fr] gap-x-2 gap-y-2">
                 {(funnel.length
                   ? funnel
                   : [
@@ -486,36 +452,31 @@ export default function AffiliatePortal({ displayName, referralIds, onLogout, em
                   const pct = Math.max(2, Math.round((row.value / max) * 100));
                   return (
                     <div key={row.stage} className="contents">
-                      <div className="pt-2 text-[11px] font-bold uppercase tracking-[0.14em] text-white/65">{row.stage}</div>
-                      <div className="relative">
-                        <div className="h-10 rounded-md border border-[rgba(255,215,0,0.18)] bg-black/40" />
+                      <div className="pt-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/62">{row.stage}</div>
+                      <div className="relative overflow-visible pt-4">
+                        <div className="h-7 rounded border border-cyan-300/25 bg-black/38" />
                         <div
-                          className="absolute left-0 top-0 h-10 rounded-md bg-[rgba(255,215,0,0.85)] shadow-[0_0_18px_rgba(255,215,0,0.25)] transition-[width] duration-500"
+                          className="absolute left-0 top-0 h-7 rounded bg-[linear-gradient(90deg,rgba(56,236,255,0.9),rgba(193,120,255,0.82),rgba(255,198,64,0.82))] shadow-[0_0_14px_rgba(56,236,255,0.24)] transition-[width] duration-500"
                           style={{ width: `${pct}%` }}
                           onMouseEnter={() => setFunnelHover(row)}
                           onMouseLeave={() => setFunnelHover(null)}
                         />
+                        {funnelHover?.stage === row.stage ? (
+                          <div className="pointer-events-none absolute -top-0.5 right-0 cut-frame-sm border border-violet-200/60 bg-black/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-violet-100 shadow-[0_0_14px_rgba(193,120,255,0.32)]">
+                            {row.value.toLocaleString()}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   );
                 })}
               </div>
-
-              {funnelHover ? (
-                <div className="pointer-events-none absolute right-4 top-8 w-[170px] cut-frame-sm border border-[rgba(255,215,0,0.35)] bg-black/70 p-3 text-white/90">
-                  <div className="text-sm font-black uppercase tracking-[0.14em] text-white/85">{funnelHover.stage}</div>
-                  <div className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-[#f6dc97]">
-                    value : {funnelHover.value.toLocaleString()}
-                  </div>
-                </div>
-              ) : null}
             </div>
           </div>
 
-          <div className="mt-5 cut-frame-sm border border-[rgba(255,215,0,0.34)] bg-black/45 p-4">
+          <div className="mt-5 cut-frame-sm border border-amber-300/55 bg-black/45 p-4 shadow-[0_0_0_1px_rgba(255,198,64,0.3),0_0_28px_rgba(255,198,64,0.14)]">
             <div className="mb-3 flex items-center justify-between gap-2">
               <div className="text-xs font-black uppercase tracking-[0.2em] text-white/70">Recent Referrals</div>
-              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#bfefff]">Live Feed</div>
             </div>
             <div className="space-y-3">
               {recentReferrals.length ? (
@@ -544,7 +505,7 @@ export default function AffiliatePortal({ displayName, referralIds, onLogout, em
             </div>
           </div>
 
-          <div className="mt-5 cut-frame-sm border border-[rgba(255,215,0,0.34)] bg-black/45 p-4">
+          <div className="mt-5 cut-frame-sm border border-cyan-300/55 bg-black/45 p-4 shadow-[0_0_0_1px_rgba(56,236,255,0.3),0_0_28px_rgba(56,236,255,0.14)]">
             <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/70">Affiliate Visitors</h3>
             <div className="mt-3 overflow-auto no-scrollbar">
               <table className="w-full min-w-[700px] text-left text-sm">
@@ -579,75 +540,8 @@ export default function AffiliatePortal({ displayName, referralIds, onLogout, em
           </div>
         </div>
       </main>
-      {toast ? (
-        <div className="pointer-events-none fixed right-4 top-4 z-[120]">
-          <div
-            className={`cut-frame-sm border px-4 py-2 text-xs font-black uppercase tracking-[0.14em] shadow-[0_8px_26px_rgba(0,0,0,0.55)] ${
-              toast.tone === "good"
-                ? "border-[rgba(0,255,122,0.55)] bg-[rgba(0,45,22,0.88)] text-[#a8ffd1]"
-                : toast.tone === "warn"
-                  ? "border-[rgba(255,215,0,0.55)] bg-[rgba(65,45,0,0.88)] text-[#ffe7a3]"
-                  : toast.tone === "bad"
-                    ? "border-[rgba(255,59,59,0.55)] bg-[rgba(70,8,8,0.9)] text-[#ffd0d0]"
-                    : "border-[rgba(0,191,255,0.55)] bg-[rgba(0,30,55,0.9)] text-[#bfefff]"
-            }`}
-          >
-            {toast.message}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
 
-function Card({ title, value, toneClassName }: { title: string; value: number | string; toneClassName?: string }) {
-  return (
-    <div className={`cut-frame-sm hud-hover-glow border bg-black/45 p-4 ${toneClassName ?? "border-[rgba(255,215,0,0.34)]"}`}>
-      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-white/60">{title}</p>
-      <p className="mt-2 text-3xl font-black text-[#f8d778]">{value}</p>
-    </div>
-  );
-}
-
-function ConversionRateCard({ value }: { value: number }) {
-  const v = Number.isFinite(value) ? Math.max(0, Math.min(100, Math.round(value))) : 0;
-  const radius = 46;
-  const circ = 2 * Math.PI * radius;
-  const ringOffset = circ - (v / 100) * circ;
-  return (
-    <div className="cut-frame-sm hud-hover-glow border border-[rgba(0,191,255,0.35)] bg-black/45 p-4">
-      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-white/60">Conversion Rate</p>
-      <div className="mt-2 grid place-items-center">
-        <svg viewBox="0 0 120 120" className="h-36 w-36">
-          <circle cx="60" cy="60" r={radius} stroke="rgba(255,255,255,0.12)" strokeWidth="10" fill="none" />
-          <circle
-            cx="60"
-            cy="60"
-            r={radius}
-            stroke="rgba(0,191,255,0.9)"
-            strokeWidth="10"
-            fill="none"
-            strokeDasharray={circ}
-            strokeDashoffset={ringOffset}
-            strokeLinecap="round"
-            transform="rotate(-90 60 60)"
-            style={{ transition: "stroke-dashoffset 700ms ease" }}
-          />
-          <text x="60" y="66" textAnchor="middle" fill="rgba(255,215,0,0.95)" className="text-[22px] font-black">
-            {v}%
-          </text>
-        </svg>
-      </div>
-    </div>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between rounded border border-[rgba(255,215,0,0.25)] bg-black/35 px-3 py-2">
-      <span className="text-xs uppercase tracking-[0.14em] text-white/60">{label}</span>
-      <span className="text-sm font-semibold text-white/85">{value}</span>
-    </div>
-  );
-}
 

@@ -1,7 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import LetterGlitch from '@/components/LetterGlitch'
-import NeonTypingBadge from '@/components/NeonTypingBadge'
 
 const footerLinkClass =
   'relative inline-flex pb-1 transition duration-300 ease-out hover:scale-105 hover:brightness-110 focus-visible:scale-105 focus-visible:outline-none after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-full after:origin-left after:scale-x-0 after:rounded-full after:bg-amber-200/90 after:shadow-[0_0_10px_rgba(251,191,36,0.45)] after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100 focus-visible:after:scale-x-100'
@@ -43,16 +42,7 @@ export default function SiteFooter() {
             />
           </div>
 
-          <div className="mx-auto flex w-full max-w-[min(900px,100%)] justify-center px-[clamp(0.25rem,1vw,0.75rem)] py-[clamp(0.25rem,1vw,0.6rem)]">
-            <NeonTypingBadge
-              phrases={['HONOUR · MONEY · POWER · FREEDOM']}
-              typingSpeed={78}
-              deletingSpeed={44}
-              pauseMs={1350}
-              boxed={false}
-              className="mx-auto"
-            />
-          </div>
+          <div className="mx-auto flex w-full max-w-[min(900px,100%)] justify-center px-[clamp(0.25rem,1vw,0.75rem)] py-[clamp(0.25rem,1vw,0.6rem)]" />
 
           <div className="rounded-xl p-[clamp(0.4rem,1vw,0.75rem)] text-right md:justify-self-end">
             <p

@@ -28,6 +28,8 @@ class EmailOTP(models.Model):
 class AffiliateProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="affiliate_profile")
     display_name = models.CharField(max_length=120)
+    # Frozen from the first email local-part; used to keep referral ids stable even if display name changes.
+    referral_base = models.CharField(max_length=48, db_index=True, blank=True, default="")
     earnings_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     points_total = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -37,7 +39,9 @@ class SectionReferral(models.Model):
     SECTION_CHOICES = [
         ("complete", "Complete Programs Affiliate"),
         ("single", "Single Program"),
-        ("exclusive", "Exclusive Content of Gussy Bahi"),
+        ("pawn", "The Pawn"),
+        ("king", "The King"),
+        ("exclusive", "Exclusive Content of Gussy Bahi (Legacy)"),
     ]
 
     profile = models.ForeignKey(AffiliateProfile, on_delete=models.CASCADE, related_name="section_referrals")

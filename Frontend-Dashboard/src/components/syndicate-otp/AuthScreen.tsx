@@ -45,6 +45,8 @@ type ApiPayload = {
   referral_ids?: {
     complete?: string;
     single?: string;
+    pawn?: string;
+    king?: string;
     exclusive?: string;
   };
   user?: {
@@ -470,7 +472,9 @@ export default function AuthScreen({
               ? {
                   complete: rid.complete.trim(),
                   single: rid.single?.trim() || rid.complete.trim(),
-                  exclusive: rid.exclusive?.trim() || rid.complete.trim(),
+                  pawn: rid.pawn?.trim() || rid.single?.trim() || rid.complete.trim(),
+                  king: rid.king?.trim() || rid.exclusive?.trim() || rid.complete.trim(),
+                  exclusive: rid.exclusive?.trim() || rid.king?.trim() || rid.complete.trim(),
                 }
               : undefined;
           persistSimpleAuthSession(
@@ -519,7 +523,7 @@ export default function AuthScreen({
 
   return (
     <>
-      <LuxuryRedirectOverlay active={luxuryOpen} href={luxuryHref} />
+      <LuxuryRedirectOverlay active={luxuryOpen} href={luxuryHref} delayMs={650} />
 
       <div className="scanline" />
       <div className="noise" />

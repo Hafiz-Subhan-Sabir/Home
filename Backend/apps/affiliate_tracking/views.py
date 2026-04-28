@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import random
 import secrets
 from datetime import timedelta
@@ -43,15 +42,32 @@ def _get_json(request):
 
 
 def _slug_name(name: str) -> str:
-    out = "".join(ch.lower() if ch.isalnum() else "-" for ch in name.strip())
-    out = "-".join(part for part in out.split("-") if part)
-    return out[:24] or "affiliate"
+    out = "".join(ch.lower() if ch.isalnum() else "_" for ch in name.strip())
+    out = "_".join(part for part in out.split("_") if part)
+    return out[:32] or "affiliate"
 
 
-def _referral_code(name: str, section: str, user_id: int) -> str:
-    seed = f"{name}:{section}:{user_id}".encode("utf-8")
-    digest = hashlib.sha1(seed).hexdigest()[:8]
-    return f"{_slug_name(name)}-{section[:3]}-{digest}"
+def _card_slug(section: str) -> str:
+    mapping = {
+        "complete": "fullbundle",
+        "single": "singleprogram",
+        "pawn": "pawn",
+        "king": "king",
+        # Legacy alias to keep old callers safe.
+        "exclusive": "king",
+    }
+    return mapping.get(section, section[:12].lower())
+
+
+def _generate_unique_referral_id(base_slug: str, section: str) -> str:
+    card = _card_slug(section)
+    for _ in range(30):
+        suffix = f"{random.randint(0, 999999):06d}"
+        candidate = f"{base_slug}_{card}_{suffix}"
+        if not SectionReferral.objects.filter(referral_id=candidate).exists():
+            return candidate
+    # Last-resort fallback with larger entropy.
+    return f"{base_slug}_{card}_{secrets.randbelow(10**8):08d}"
 
 
 def _display_name_from_email(email: str) -> str:
@@ -61,6 +77,22 @@ def _display_name_from_email(email: str) -> str:
     return (normalized.title() or "Affiliate")[:120]
 
 
+def _email_local_slug(email: str) -> str:
+    local = (email.split("@")[0] if "@" in email else email).strip().lower()
+    return _slug_name(local)[:32] or "affiliate"
+
+
+def _ensure_section_referral(profile: AffiliateProfile, section: str, base_slug: str) -> SectionReferral:
+    existing = profile.section_referrals.filter(section=section).first()
+    if existing:
+        return existing
+    return SectionReferral.objects.create(
+        profile=profile,
+        section=section,
+        referral_id=_generate_unique_referral_id(base_slug=base_slug, section=section),
+    )
+
+
 def _ensure_profile_by_email(email: str) -> tuple[User, AffiliateProfile]:
     normalized_email = email.strip().lower()
     display_name = _display_name_from_email(normalized_email)
@@ -68,16 +100,24 @@ def _ensure_profile_by_email(email: str) -> tuple[User, AffiliateProfile]:
         username=normalized_email,
         defaults={"email": normalized_email, "first_name": display_name},
     )
-    profile, _ = AffiliateProfile.objects.get_or_create(user=user, defaults={"display_name": display_name})
+    profile, _ = AffiliateProfile.objects.get_or_create(
+        user=user,
+        defaults={
+            "display_name": display_name,
+            "referral_base": _email_local_slug(normalized_email),
+        },
+    )
+    updates = []
     if not profile.display_name:
         profile.display_name = display_name
-        profile.save(update_fields=["display_name"])
-    for section in ("complete", "single", "exclusive"):
-        SectionReferral.objects.get_or_create(
-            profile=profile,
-            section=section,
-            defaults={"referral_id": _referral_code(profile.display_name, section, user.id)},
-        )
+        updates.append("display_name")
+    if not profile.referral_base:
+        profile.referral_base = _email_local_slug(normalized_email)
+        updates.append("referral_base")
+    if updates:
+        profile.save(update_fields=updates)
+    for section in ("complete", "single", "pawn", "king"):
+        _ensure_section_referral(profile=profile, section=section, base_slug=profile.referral_base)
     return user, profile
 
 
@@ -95,13 +135,12 @@ def _ensure_profile(name: str) -> tuple[User, AffiliateProfile]:
             username = f"{base_username}_{idx}"
             idx += 1
         user = User.objects.create(username=username, first_name=clean_name)
-        profile = AffiliateProfile.objects.create(user=user, display_name=clean_name)
-    for section in ("complete", "single", "exclusive"):
-        SectionReferral.objects.get_or_create(
-            profile=profile,
-            section=section,
-            defaults={"referral_id": _referral_code(profile.display_name, section, user.id)},
-        )
+        profile = AffiliateProfile.objects.create(user=user, display_name=clean_name, referral_base=_slug_name(clean_name))
+    if not profile.referral_base:
+        profile.referral_base = _slug_name(profile.display_name or clean_name)
+        profile.save(update_fields=["referral_base"])
+    for section in ("complete", "single", "pawn", "king"):
+        _ensure_section_referral(profile=profile, section=section, base_slug=profile.referral_base)
     return user, profile
 
 
@@ -126,17 +165,22 @@ def ensure_affiliate_profile_for_existing_user(user: User) -> AffiliateProfile:
     )[:120]
     profile, _ = AffiliateProfile.objects.get_or_create(
         user=user,
-        defaults={"display_name": display_name},
+        defaults={
+            "display_name": display_name,
+            "referral_base": _email_local_slug(email) if email else _slug_name(display_name),
+        },
     )
+    updates = []
     if not profile.display_name:
         profile.display_name = display_name
-        profile.save(update_fields=["display_name"])
-    for section in ("complete", "single", "exclusive"):
-        SectionReferral.objects.get_or_create(
-            profile=profile,
-            section=section,
-            defaults={"referral_id": _referral_code(profile.display_name, section, user.id)},
-        )
+        updates.append("display_name")
+    if not profile.referral_base:
+        profile.referral_base = _email_local_slug(email) if email else _slug_name(display_name)
+        updates.append("referral_base")
+    if updates:
+        profile.save(update_fields=updates)
+    for section in ("complete", "single", "pawn", "king"):
+        _ensure_section_referral(profile=profile, section=section, base_slug=profile.referral_base)
     return profile
 
 
@@ -145,7 +189,10 @@ def referral_ids_payload(profile: AffiliateProfile) -> dict[str, str]:
     return {
         "complete": refs.get("complete", ""),
         "single": refs.get("single", ""),
-        "exclusive": refs.get("exclusive", ""),
+        "pawn": refs.get("pawn", refs.get("single", "")),
+        "king": refs.get("king", refs.get("exclusive", "")),
+        # Back-compat field expected by older frontend.
+        "exclusive": refs.get("king", refs.get("exclusive", "")),
     }
 
 
@@ -221,7 +268,7 @@ def _stats_payload(referral: SectionReferral) -> dict:
     overall = _overall_stats(referral.profile)
 
     by_section = {}
-    for section_name in ("complete", "single", "exclusive"):
+    for section_name in ("complete", "single", "pawn", "king"):
         section_ref = referral.profile.section_referrals.filter(section=section_name).first()
         if section_ref:
             by_section[section_name] = _section_stats(section_ref)

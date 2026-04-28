@@ -8,7 +8,8 @@ import AffiliatePortal from "./AffiliatePortal";
 const DEFAULT_REFERRAL_IDS = {
   complete: "subhan-x91",
   single: "subhan-x91",
-  exclusive: "subhan-x91"
+  pawn: "subhan-x91",
+  king: "subhan-x91",
 } as const;
 
 const TOKEN_KEY = "affiliate_token";

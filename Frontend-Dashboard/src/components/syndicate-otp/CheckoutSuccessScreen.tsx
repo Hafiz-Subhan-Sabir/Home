@@ -24,6 +24,8 @@ type SuccessPayload = {
   referral_ids?: {
     complete?: string;
     single?: string;
+    pawn?: string;
+    king?: string;
     exclusive?: string;
   };
   user?: {
@@ -194,7 +196,9 @@ export default function CheckoutSuccessScreen({
               ? {
                   complete: rid.complete.trim(),
                   single: rid.single?.trim() || rid.complete.trim(),
-                  exclusive: rid.exclusive?.trim() || rid.complete.trim(),
+                  pawn: rid.pawn?.trim() || rid.single?.trim() || rid.complete.trim(),
+                  king: rid.king?.trim() || rid.exclusive?.trim() || rid.complete.trim(),
+                  exclusive: rid.exclusive?.trim() || rid.king?.trim() || rid.complete.trim(),
                 }
               : undefined;
           persistSimpleAuthSession(
@@ -210,10 +214,10 @@ export default function CheckoutSuccessScreen({
             : SYNDICATE_URL;
         setLuxuryHref(nextUrl);
         window.history.replaceState({}, "", "/");
-        window.setTimeout(() => setLuxuryOpen(true), 400);
+        window.setTimeout(() => setLuxuryOpen(true), 80);
         window.setTimeout(() => {
           if (typeof window !== "undefined") window.location.replace(nextUrl);
-        }, 1200);
+        }, 700);
       } catch (verificationError) {
         setError(
           verificationError instanceof Error
@@ -230,7 +234,7 @@ export default function CheckoutSuccessScreen({
 
   return (
     <div className="checkout-page-wrap checkout-page-wrap--entered">
-      <LuxuryRedirectOverlay active={luxuryOpen} href={luxuryHref} />
+      <LuxuryRedirectOverlay active={luxuryOpen} href={luxuryHref} delayMs={650} />
 
       <div className="scanline" />
       <div className="noise" />

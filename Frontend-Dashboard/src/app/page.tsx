@@ -1,7 +1,6 @@
 import { readdir } from 'node:fs/promises'
 import path from 'node:path'
 import Image from 'next/image'
-import Link from 'next/link'
 import { PricingPage } from '@/components/AnimatedPricingPage'
 import CertificatesSection from '@/components/CertificatesSection'
 import DomeGallery from '@/components/DomeGallery'
@@ -178,16 +177,6 @@ export default async function Home() {
         </div>
         <div className="absolute bottom-4 left-1/2 z-20 w-full max-w-[1180px] -translate-x-1/2 px-3 sm:bottom-6 sm:px-4">
           <FeaturedLogosStrip logos={FEATURED_LOGOS} speedSeconds={34} compact />
-        </div>
-        <div className="absolute right-4 top-[clamp(76px,11vw,98px)] z-20 sm:right-6">
-          <Link
-            href="/our-methods"
-            className="group inline-flex min-h-[44px] items-center gap-2 rounded-md border border-cyan-200/70 bg-cyan-300/10 px-4 py-2 text-[11px] font-extrabold uppercase tracking-[0.18em] text-cyan-100 shadow-[0_0_18px_rgba(56,236,255,0.3)] transition duration-300 hover:-translate-y-0.5 hover:bg-cyan-300/20 hover:shadow-[0_0_30px_rgba(56,236,255,0.45)]"
-          >
-            <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-200 shadow-[0_0_12px_rgba(56,236,255,0.95)]" />
-            Our Methods
-            <span className="text-cyan-100/90 transition-transform duration-300 group-hover:translate-x-0.5">→</span>
-          </Link>
         </div>
         <div className="relative z-10 h-[100dvh] min-h-[100dvh] w-full min-w-0" aria-hidden />
       </section>

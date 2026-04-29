@@ -127,48 +127,76 @@ function TierCard({
   const hudThemeByPlan: Record<
     PlanKey,
     {
+      cardFrame: string
+      cardGlow: string
+      lightningColor: string
+      lightningSoft: string
       frame: string
       glow: string
       chip: string
     }
   > = {
     bundle: {
+      cardFrame: 'border-cyan-300 border-[10px]',
+      cardGlow:
+        'shadow-[0_0_0_1px_rgba(34,211,238,0.9),0_0_22px_rgba(34,211,238,0.86),0_0_56px_rgba(34,211,238,0.72),0_0_108px_rgba(34,211,238,0.56),inset_0_0_20px_rgba(34,211,238,0.27)]',
+      lightningColor: 'rgba(34,211,238,0.96)',
+      lightningSoft: 'rgba(34,211,238,0.62)',
       frame: 'border-cyan-300/95 hover:border-cyan-200/100',
       glow: 'shadow-[0_0_0_1px_rgba(56,236,255,0.85),0_0_42px_rgba(56,236,255,0.55),0_0_110px_rgba(56,236,255,0.24)]',
       chip: 'border-cyan-50 bg-cyan-200/75 shadow-[0_0_18px_rgba(56,236,255,1)] text-cyan-100',
     },
     pawn: {
+      cardFrame: 'border-lime-300 border-[10px]',
+      cardGlow:
+        'shadow-[0_0_0_1px_rgba(163,230,53,0.9),0_0_22px_rgba(163,230,53,0.86),0_0_56px_rgba(163,230,53,0.72),0_0_108px_rgba(163,230,53,0.56),inset_0_0_20px_rgba(163,230,53,0.27)]',
+      lightningColor: 'rgba(163,230,53,0.96)',
+      lightningSoft: 'rgba(163,230,53,0.62)',
       frame: 'border-lime-300/95 hover:border-lime-200/100',
       glow: 'shadow-[0_0_0_1px_rgba(120,255,90,0.85),0_0_42px_rgba(120,255,90,0.55),0_0_110px_rgba(120,255,90,0.24)]',
       chip: 'border-lime-50 bg-lime-200/75 shadow-[0_0_18px_rgba(120,255,90,1)] text-lime-100',
     },
     knight: {
+      cardFrame: 'border-fuchsia-400 border-[10px]',
+      cardGlow:
+        'shadow-[0_0_0_1px_rgba(232,121,249,0.9),0_0_22px_rgba(232,121,249,0.86),0_0_56px_rgba(232,121,249,0.72),0_0_108px_rgba(232,121,249,0.56),inset_0_0_20px_rgba(232,121,249,0.27)]',
+      lightningColor: 'rgba(232,121,249,0.96)',
+      lightningSoft: 'rgba(232,121,249,0.62)',
       frame: 'border-violet-300/95 hover:border-violet-200/100',
       glow: 'shadow-[0_0_0_1px_rgba(193,120,255,0.85),0_0_42px_rgba(193,120,255,0.55),0_0_110px_rgba(193,120,255,0.24)]',
       chip: 'border-violet-50 bg-violet-200/75 shadow-[0_0_18px_rgba(193,120,255,1)] text-violet-100',
     },
     king: {
+      cardFrame: 'border-amber-300 border-[10px]',
+      cardGlow:
+        'shadow-[0_0_0_1px_rgba(252,211,77,0.9),0_0_22px_rgba(252,211,77,0.86),0_0_56px_rgba(252,211,77,0.72),0_0_108px_rgba(252,211,77,0.56),inset_0_0_20px_rgba(252,211,77,0.27)]',
+      lightningColor: 'rgba(252,211,77,0.96)',
+      lightningSoft: 'rgba(252,211,77,0.62)',
       frame: 'border-amber-300/95 hover:border-amber-200/100',
       glow: 'shadow-[0_0_0_1px_rgba(255,198,64,0.85),0_0_42px_rgba(255,198,64,0.55),0_0_110px_rgba(255,198,64,0.24)]',
       chip: 'border-amber-50 bg-amber-200/75 shadow-[0_0_18px_rgba(255,198,64,1)] text-amber-100',
     },
   }
-  const accentBorder = hudThemeByPlan[planKey].frame
+  const accentBorder = hudThemeByPlan[planKey].cardFrame
   const gradientShellByPlan: Record<PlanKey, string> = {
     bundle: 'from-cyan-400/45 via-violet-500/45 to-fuchsia-500/45',
     pawn: 'from-lime-300/45 via-emerald-400/45 to-cyan-400/45',
     knight: 'from-cyan-400/45 via-blue-500/45 to-violet-500/45',
     king: 'from-amber-300/45 via-orange-400/45 to-rose-500/45',
   }
-  const accentShadow = hudThemeByPlan[planKey].glow
+  const accentShadow = hudThemeByPlan[planKey].cardGlow
 
   return (
     <div
       className={cn(
-        'relative rounded-3xl bg-gradient-to-r p-[2px] [clip-path:polygon(14px_0,calc(100%-14px)_0,100%_14px,100%_calc(100%-14px),calc(100%-14px)_100%,14px_100%,0_calc(100%-14px),0_14px)]',
+        'lightning-glow-card relative rounded-3xl bg-gradient-to-r p-[2px] [clip-path:polygon(14px_0,calc(100%-14px)_0,100%_14px,100%_calc(100%-14px),calc(100%-14px)_100%,14px_100%,0_calc(100%-14px),0_14px)]',
         gradientShellByPlan[planKey],
         accentShadow,
       )}
+      style={{
+        ['--lightning-color' as any]: hudThemeByPlan[planKey].lightningColor,
+        ['--lightning-color-soft' as any]: hudThemeByPlan[planKey].lightningSoft,
+      }}
     >
       <span className="pointer-events-none absolute inset-[-1px] bg-inherit opacity-70 blur-[12px]" />
       <div

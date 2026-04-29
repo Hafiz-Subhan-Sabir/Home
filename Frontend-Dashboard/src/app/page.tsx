@@ -49,39 +49,49 @@ const FEATURED_PROGRAM_IMAGES = [
 
 const SOCIAL_CARD_BORDER_THEMES = [
   {
-    frame: "border-[4px] border-red-700 hover:border-red-500",
-    glow: "shadow-[0_0_0_1px_rgba(127,29,29,1),0_0_56px_rgba(127,29,29,0.55),0_0_118px_rgba(127,29,29,0.35),0_18px_42px_rgba(0,0,0,0.72)] hover:shadow-[0_0_0_1px_rgba(185,28,28,1),0_0_86px_rgba(185,28,28,0.62),0_0_156px_rgba(185,28,28,0.42),0_26px_58px_rgba(0,0,0,0.78)]",
+    frame: "border-[4px] border-red-400 hover:border-red-300",
+    glow: "shadow-[0_0_0_1px_rgba(248,113,113,0.9),0_0_22px_rgba(248,113,113,0.86),0_0_56px_rgba(248,113,113,0.72),0_0_108px_rgba(248,113,113,0.56),inset_0_0_20px_rgba(248,113,113,0.27)] hover:shadow-[0_0_0_1px_rgba(252,165,165,0.95),0_0_26px_rgba(252,165,165,0.9),0_0_64px_rgba(252,165,165,0.75),0_0_116px_rgba(252,165,165,0.62),inset_0_0_22px_rgba(252,165,165,0.34)]",
     inner: "border-red-500/75",
     chip: "border-red-500 bg-red-900/75 shadow-[0_0_18px_rgba(127,29,29,0.95)]",
     bgGlow: "bg-[radial-gradient(74%_74%_at_50%_50%,rgba(127,29,29,0.55),rgba(127,29,29,0.18)_44%,rgba(12,4,4,0.72)_72%,transparent_86%)]",
+    lightningColor: 'rgba(248,113,113,0.96)',
+    lightningSoft: 'rgba(248,113,113,0.62)',
   },
   {
-    frame: "border-[4px] border-cyan-700 hover:border-cyan-500",
-    glow: "shadow-[0_0_0_1px_rgba(14,116,144,1),0_0_56px_rgba(14,116,144,0.55),0_0_118px_rgba(14,116,144,0.35),0_18px_42px_rgba(0,0,0,0.72)] hover:shadow-[0_0_0_1px_rgba(8,145,178,1),0_0_86px_rgba(8,145,178,0.62),0_0_156px_rgba(8,145,178,0.42),0_26px_58px_rgba(0,0,0,0.78)]",
+    frame: "border-[4px] border-cyan-300 hover:border-cyan-200",
+    glow: "shadow-[0_0_0_1px_rgba(34,211,238,0.9),0_0_22px_rgba(34,211,238,0.86),0_0_56px_rgba(34,211,238,0.72),0_0_108px_rgba(34,211,238,0.56),inset_0_0_20px_rgba(34,211,238,0.27)] hover:shadow-[0_0_0_1px_rgba(103,232,249,0.95),0_0_26px_rgba(103,232,249,0.9),0_0_64px_rgba(103,232,249,0.75),0_0_116px_rgba(103,232,249,0.62),inset_0_0_22px_rgba(103,232,249,0.34)]",
     inner: "border-cyan-500/75",
     chip: "border-cyan-500 bg-cyan-900/75 shadow-[0_0_18px_rgba(14,116,144,0.95)]",
     bgGlow: "bg-[radial-gradient(74%_74%_at_50%_50%,rgba(14,116,144,0.55),rgba(14,116,144,0.18)_44%,rgba(3,14,18,0.72)_72%,transparent_86%)]",
+    lightningColor: 'rgba(56,189,248,0.96)',
+    lightningSoft: 'rgba(56,189,248,0.62)',
   },
   {
-    frame: "border-[4px] border-violet-700 hover:border-violet-500",
-    glow: "shadow-[0_0_0_1px_rgba(91,33,182,1),0_0_56px_rgba(91,33,182,0.55),0_0_118px_rgba(91,33,182,0.35),0_18px_42px_rgba(0,0,0,0.72)] hover:shadow-[0_0_0_1px_rgba(124,58,237,1),0_0_86px_rgba(124,58,237,0.62),0_0_156px_rgba(124,58,237,0.42),0_26px_58px_rgba(0,0,0,0.78)]",
+    frame: "border-[4px] border-fuchsia-400 hover:border-fuchsia-300",
+    glow: "shadow-[0_0_0_1px_rgba(232,121,249,0.9),0_0_22px_rgba(232,121,249,0.86),0_0_56px_rgba(232,121,249,0.72),0_0_108px_rgba(232,121,249,0.56),inset_0_0_20px_rgba(232,121,249,0.27)] hover:shadow-[0_0_0_1px_rgba(244,114,182,0.95),0_0_26px_rgba(244,114,182,0.9),0_0_64px_rgba(244,114,182,0.75),0_0_116px_rgba(244,114,182,0.62),inset_0_0_22px_rgba(244,114,182,0.34)]",
     inner: "border-violet-500/75",
     chip: "border-violet-500 bg-violet-900/75 shadow-[0_0_18px_rgba(91,33,182,0.95)]",
     bgGlow: "bg-[radial-gradient(74%_74%_at_50%_50%,rgba(91,33,182,0.55),rgba(91,33,182,0.18)_44%,rgba(10,5,18,0.72)_72%,transparent_86%)]",
+    lightningColor: 'rgba(192,132,252,0.96)',
+    lightningSoft: 'rgba(192,132,252,0.62)',
   },
   {
-    frame: "border-[4px] border-amber-700 hover:border-amber-500",
-    glow: "shadow-[0_0_0_1px_rgba(146,64,14,1),0_0_56px_rgba(146,64,14,0.55),0_0_118px_rgba(146,64,14,0.35),0_18px_42px_rgba(0,0,0,0.72)] hover:shadow-[0_0_0_1px_rgba(180,83,9,1),0_0_86px_rgba(180,83,9,0.62),0_0_156px_rgba(180,83,9,0.42),0_26px_58px_rgba(0,0,0,0.78)]",
+    frame: "border-[4px] border-amber-300 hover:border-amber-200",
+    glow: "shadow-[0_0_0_1px_rgba(252,211,77,0.9),0_0_22px_rgba(252,211,77,0.86),0_0_56px_rgba(252,211,77,0.72),0_0_108px_rgba(252,211,77,0.56),inset_0_0_20px_rgba(252,211,77,0.27)] hover:shadow-[0_0_0_1px_rgba(253,224,71,0.95),0_0_26px_rgba(253,224,71,0.9),0_0_64px_rgba(253,224,71,0.75),0_0_116px_rgba(253,224,71,0.62),inset_0_0_22px_rgba(253,224,71,0.34)]",
     inner: "border-amber-500/75",
     chip: "border-amber-500 bg-amber-900/75 shadow-[0_0_18px_rgba(146,64,14,0.95)]",
     bgGlow: "bg-[radial-gradient(74%_74%_at_50%_50%,rgba(146,64,14,0.55),rgba(146,64,14,0.18)_44%,rgba(18,10,4,0.72)_72%,transparent_86%)]",
+    lightningColor: 'rgba(251,191,36,0.96)',
+    lightningSoft: 'rgba(251,191,36,0.62)',
   },
   {
-    frame: "border-[4px] border-lime-700 hover:border-lime-500",
-    glow: "shadow-[0_0_0_1px_rgba(63,98,18,1),0_0_56px_rgba(63,98,18,0.55),0_0_118px_rgba(63,98,18,0.35),0_18px_42px_rgba(0,0,0,0.72)] hover:shadow-[0_0_0_1px_rgba(77,124,15,1),0_0_86px_rgba(77,124,15,0.62),0_0_156px_rgba(77,124,15,0.42),0_26px_58px_rgba(0,0,0,0.78)]",
+    frame: "border-[4px] border-lime-300 hover:border-lime-200",
+    glow: "shadow-[0_0_0_1px_rgba(163,230,53,0.9),0_0_22px_rgba(163,230,53,0.86),0_0_56px_rgba(163,230,53,0.72),0_0_108px_rgba(163,230,53,0.56),inset_0_0_20px_rgba(163,230,53,0.27)] hover:shadow-[0_0_0_1px_rgba(190,242,100,0.95),0_0_26px_rgba(190,242,100,0.9),0_0_64px_rgba(190,242,100,0.75),0_0_116px_rgba(190,242,100,0.62),inset_0_0_22px_rgba(190,242,100,0.34)]",
     inner: "border-lime-500/75",
     chip: "border-lime-500 bg-lime-900/75 shadow-[0_0_18px_rgba(63,98,18,0.95)]",
     bgGlow: "bg-[radial-gradient(74%_74%_at_50%_50%,rgba(63,98,18,0.55),rgba(63,98,18,0.18)_44%,rgba(8,14,3,0.72)_72%,transparent_86%)]",
+    lightningColor: 'rgba(163,230,53,0.96)',
+    lightningSoft: 'rgba(163,230,53,0.62)',
   },
 ] as const
 
@@ -160,9 +170,9 @@ export default async function Home() {
               phrases={[
                 'HONOUR · MONEY · POWER · FREEDOM',
               ]}
-              typingSpeed={78}
-              deletingSpeed={44}
-              pauseMs={1350}
+              typingSpeed={34}
+              deletingSpeed={24}
+              pauseMs={420}
             />
           </div>
         </div>
@@ -257,7 +267,13 @@ export default async function Home() {
                       target="_blank"
                       rel="noreferrer"
                       aria-label={`Open Instagram: ${image.alt}`}
-                      className={`group relative block h-[240px] w-[180px] overflow-hidden rounded-xl border bg-transparent [clip-path:polygon(0%_8%,8%_0%,100%_0%,100%_92%,92%_100%,0%_100%)] transition-all duration-300 hover:-translate-y-1 sm:h-[290px] sm:w-[220px] md:h-[330px] md:w-[250px] ${theme.frame} ${theme.glow}`}
+                      className={`lightning-glow-card group relative block h-[240px] w-[180px] overflow-hidden rounded-xl border bg-transparent [clip-path:polygon(0%_8%,8%_0%,100%_0%,100%_92%,92%_100%,0%_100%)] transition-all duration-300 hover:-translate-y-1 sm:h-[290px] sm:w-[220px] md:h-[330px] md:w-[250px] ${theme.frame} ${theme.glow}`}
+                      style={
+                        {
+                          ['--lightning-color' as any]: theme.lightningColor,
+                          ['--lightning-color-soft' as any]: theme.lightningSoft,
+                        }
+                      }
                     >
                       <span className={`pointer-events-none absolute -inset-7 z-0 blur-3xl opacity-85 transition-opacity duration-300 group-hover:opacity-100 ${theme.bgGlow}`} />
                       <span className="pointer-events-none absolute inset-0 z-[1] bg-[linear-gradient(180deg,rgba(10,12,22,0.2),rgba(2,4,12,0.62))]" />
@@ -296,7 +312,13 @@ export default async function Home() {
                       target="_blank"
                       rel="noreferrer"
                       aria-label={`Open TikTok: ${image.alt}`}
-                      className={`group relative block h-[240px] w-[180px] overflow-hidden rounded-xl border bg-transparent [clip-path:polygon(0%_8%,8%_0%,100%_0%,100%_92%,92%_100%,0%_100%)] transition-all duration-300 hover:-translate-y-1 sm:h-[290px] sm:w-[220px] md:h-[330px] md:w-[250px] ${theme.frame} ${theme.glow}`}
+                      className={`lightning-glow-card group relative block h-[240px] w-[180px] overflow-hidden rounded-xl border bg-transparent [clip-path:polygon(0%_8%,8%_0%,100%_0%,100%_92%,92%_100%,0%_100%)] transition-all duration-300 hover:-translate-y-1 sm:h-[290px] sm:w-[220px] md:h-[330px] md:w-[250px] ${theme.frame} ${theme.glow}`}
+                      style={
+                        {
+                          ['--lightning-color' as any]: theme.lightningColor,
+                          ['--lightning-color-soft' as any]: theme.lightningSoft,
+                        }
+                      }
                     >
                       <span className={`pointer-events-none absolute -inset-7 z-0 blur-3xl opacity-85 transition-opacity duration-300 group-hover:opacity-100 ${theme.bgGlow}`} />
                       <span className="pointer-events-none absolute inset-0 z-[1] bg-[linear-gradient(180deg,rgba(10,12,22,0.2),rgba(2,4,12,0.62))]" />

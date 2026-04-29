@@ -8,6 +8,8 @@ type SnapshotItem = {
   src: string
   title: string
   description: string
+  frame: string
+  tone: string
 }
 
 const SNAPSHOTS: SnapshotItem[] = [
@@ -16,32 +18,33 @@ const SNAPSHOTS: SnapshotItem[] = [
     title: 'PROGRAM EXECUTION HUB',
     description:
       'Access structured programs, actionable lessons, and progress systems from a personalized dashboard.',
+    frame: 'border-cyan-300 border-[10px] shadow-[0_0_0_1px_rgba(34,211,238,0.9),0_0_22px_rgba(34,211,238,0.86),0_0_56px_rgba(34,211,238,0.72),0_0_108px_rgba(34,211,238,0.56),inset_0_0_20px_rgba(34,211,238,0.27)]',
+    tone: 'from-cyan-400/18 via-sky-500/12 to-violet-500/18',
   },
   {
     src: '/assets/paywall/syndicate-mode-snapshot.png',
     title: 'SYNDICATE MODE DASHBOARD',
     description:
       'Use curated pathways to pick skills that align with your style, goals, and execution level.',
+    frame: 'border-lime-300 border-[10px] shadow-[0_0_0_1px_rgba(163,230,53,0.9),0_0_22px_rgba(163,230,53,0.86),0_0_56px_rgba(163,230,53,0.72),0_0_108px_rgba(163,230,53,0.56),inset_0_0_20px_rgba(163,230,53,0.27)]',
+    tone: 'from-lime-300/18 via-emerald-500/12 to-amber-500/18',
   },
   {
     src: '/assets/paywall/dashboard-snapshot.png',
     title: 'MEMBER WORKSPACE OVERVIEW',
     description:
       'Stay ahead with trend-driven modules that help you identify opportunities before they saturate.',
+    frame: 'border-fuchsia-400 border-[10px] shadow-[0_0_0_1px_rgba(232,121,249,0.9),0_0_22px_rgba(232,121,249,0.86),0_0_56px_rgba(232,121,249,0.72),0_0_108px_rgba(232,121,249,0.56),inset_0_0_20px_rgba(232,121,249,0.27)]',
+    tone: 'from-fuchsia-400/18 via-violet-500/12 to-cyan-500/18',
   },
   {
     src: '/assets/paywall/methods-reference.png',
     title: 'LIVE CONTENT UPDATES',
     description:
       'Content, resources, and frameworks evolve continuously so your private workspace keeps compounding.',
+    frame: 'border-red-400 border-[10px] shadow-[0_0_0_1px_rgba(248,113,113,0.9),0_0_22px_rgba(248,113,113,0.86),0_0_56px_rgba(248,113,113,0.72),0_0_108px_rgba(248,113,113,0.56),inset_0_0_20px_rgba(248,113,113,0.27)]',
+    tone: 'from-rose-400/18 via-red-500/12 to-orange-500/18',
   },
-]
-
-const CYBER_FRAME_STYLES = [
-  'from-cyan-400 via-blue-500 to-fuchsia-500',
-  'from-amber-300 via-orange-400 to-rose-500',
-  'from-violet-400 via-indigo-500 to-cyan-400',
-  'from-lime-300 via-emerald-400 to-cyan-400',
 ]
 
 export default function PaywallSnapshotsSection() {
@@ -70,33 +73,39 @@ export default function PaywallSnapshotsSection() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
-          {SNAPSHOTS.map((snapshot, index) => (
+          {SNAPSHOTS.map((snapshot) => (
             <div
               key={snapshot.title}
-              className={`group relative overflow-hidden bg-gradient-to-r p-[1px] shadow-[0_0_0_1px_rgba(255,255,255,0.22),0_0_30px_rgba(34,211,238,0.2),0_0_65px_rgba(217,70,239,0.16)] transition-transform duration-300 hover:scale-[1.01] [clip-path:polygon(14px_0,calc(100%-14px)_0,100%_14px,100%_calc(100%-14px),calc(100%-14px)_100%,14px_100%,0_calc(100%-14px),0_14px)] ${CYBER_FRAME_STYLES[index % CYBER_FRAME_STYLES.length]}`}
+              className={`group relative overflow-hidden bg-transparent p-[1px] transition duration-300 ${snapshot.frame}`}
             >
-              <span className="pointer-events-none absolute inset-[-1px] bg-inherit opacity-75 blur-[12px]" />
-              <article className="relative overflow-hidden border border-white/20 bg-[#090b12]/86 [clip-path:polygon(14px_0,calc(100%-14px)_0,100%_14px,100%_calc(100%-14px),calc(100%-14px)_100%,14px_100%,0_calc(100%-14px),0_14px)]">
-                <div className="relative p-5 sm:p-6">
-                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_12%,rgba(34,211,238,0.1),transparent_42%),radial-gradient(circle_at_84%_86%,rgba(217,70,239,0.08),transparent_48%)]" />
-                  <h3 className="relative text-xl font-black uppercase leading-tight text-amber-300 drop-shadow-[0_0_10px_rgba(251,191,36,0.35)] sm:text-2xl">
+              <article className="relative flex h-full min-h-[clamp(360px,44vh,420px)] flex-col border border-zinc-100/30 bg-[#05070d]/85 p-5 [clip-path:polygon(14px_0,calc(100%-14px)_0,100%_14px,100%_calc(100%-18px),calc(100%-18px)_100%,18px_100%,0_calc(100%-14px),0_14px)]">
+                <span className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${snapshot.tone}`} />
+                <span className="pointer-events-none absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:34px_34px]" />
+                <span className="pointer-events-none absolute inset-0 opacity-[0.09] [background-image:repeating-linear-gradient(0deg,transparent_0px,transparent_2px,rgba(255,255,255,0.15)_2px,rgba(255,255,255,0.15)_3px)]" />
+                <span className="pointer-events-none absolute left-3 top-3 h-6 w-6 border-l-2 border-t-2 border-zinc-100/90 [clip-path:polygon(0_0,100%_0,100%_34%,34%_34%,34%_100%,0_100%)]" />
+                <span className="pointer-events-none absolute right-3 top-3 h-6 w-6 border-r-2 border-t-2 border-zinc-100/90 [clip-path:polygon(0_0,100%_0,100%_100%,66%_100%,66%_34%,0_34%)]" />
+                <span className="pointer-events-none absolute bottom-3 left-3 h-6 w-6 border-b-2 border-l-2 border-zinc-100/90 [clip-path:polygon(0_0,34%_0,34%_66%,100%_66%,100%_100%,0_100%)]" />
+                <span className="pointer-events-none absolute bottom-3 right-3 h-6 w-6 border-b-2 border-r-2 border-zinc-100/90 [clip-path:polygon(66%_0,100%_0,100%_100%,0_100%,0_66%,66%_66%)]" />
+                <span className="pointer-events-none absolute left-1/2 top-2 h-[2px] w-16 -translate-x-1/2 bg-gradient-to-r from-transparent via-zinc-100/90 to-transparent [clip-path:polygon(8%_0,92%_0,100%_100%,0_100%)]" />
+                <span className="pointer-events-none absolute bottom-2 left-1/2 h-[2px] w-16 -translate-x-1/2 bg-gradient-to-r from-transparent via-zinc-100/90 to-transparent [clip-path:polygon(0_0,100%_0,92%_100%,8%_100%)]" />
+                <div className="relative rounded-md border border-zinc-100/25 bg-black/45 px-4 py-3 backdrop-blur-[1px]">
+                  <h3 className="text-xl font-black uppercase leading-tight text-amber-300 drop-shadow-[0_0_10px_rgba(251,191,36,0.35)] sm:text-2xl">
                     {snapshot.title}
                   </h3>
-                  <p className="relative mt-2 text-base leading-relaxed text-slate-100 sm:text-[1.08rem]">
+                  <p className="mt-2 text-base leading-relaxed text-slate-100 sm:text-[1.08rem]">
                     {snapshot.description}
                   </p>
                 </div>
-                <div className="px-5 pb-5 sm:px-6 sm:pb-6">
-                  <div className="relative h-[220px] overflow-hidden border border-white/25 bg-black/75 shadow-[0_0_16px_rgba(34,211,238,0.18)] [clip-path:polygon(12px_0,calc(100%-12px)_0,100%_12px,100%_calc(100%-12px),calc(100%-12px)_100%,12px_100%,0_calc(100%-12px),0_12px)] sm:h-[260px] md:h-[280px]">
-                    <Image
-                      src={snapshot.src}
-                      alt={snapshot.title}
-                      fill
-                      sizes="(max-width: 767px) 92vw, (max-width: 1200px) 46vw, 42vw"
-                      className="object-cover object-center transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-                    />
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/38 via-transparent to-transparent" />
-                  </div>
+                <div className="relative mt-4 flex-1 overflow-hidden border border-zinc-100/30 bg-transparent shadow-[0_0_12px_rgba(255,255,255,0.3)] [clip-path:polygon(12px_0,calc(100%-12px)_0,100%_12px,100%_calc(100%-16px),calc(100%-16px)_100%,16px_100%,0_calc(100%-12px),0_12px)]">
+                  <span className="pointer-events-none absolute inset-0 z-[3] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.24))]" />
+                  <span className="pointer-events-none absolute left-1/2 top-2 z-[3] h-[1px] w-20 -translate-x-1/2 bg-gradient-to-r from-transparent via-zinc-100/55 to-transparent" />
+                  <Image
+                    src={snapshot.src}
+                    alt={snapshot.title}
+                    fill
+                    sizes="(max-width: 767px) 92vw, (max-width: 1200px) 46vw, 42vw"
+                    className="object-cover object-top saturate-[1.08] contrast-[1.03]"
+                  />
                 </div>
               </article>
             </div>

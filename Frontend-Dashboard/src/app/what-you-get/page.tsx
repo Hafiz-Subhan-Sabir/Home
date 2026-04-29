@@ -4,50 +4,6 @@ import { NavApp } from '@/components/NavApp'
 import GlobalBottomSections from '@/components/GlobalBottomSections'
 import NeonTypingBadge from '@/components/NeonTypingBadge'
 
-const VALUE_PILLARS = [
-  {
-    title: 'Practical Training Systems',
-    description:
-      'Structured modules focused on execution, positioning, and leverage so every lesson translates into action.',
-  },
-  {
-    title: 'Elite Operator Frameworks',
-    description:
-      'Battle-tested decision tools that help you prioritize high-value moves and avoid wasted effort.',
-  },
-  {
-    title: 'Ethical Power Blueprint',
-    description:
-      'Methods to build wealth and influence with integrity, discipline, and long-term control.',
-  },
-  {
-    title: 'Strategic Growth Environment',
-    description:
-      'A focused ecosystem designed to keep your standards high, your momentum stable, and your outcomes measurable.',
-  },
-]
-
-const DELIVERY_FLOW = [
-  {
-    step: '01',
-    title: 'Access & Orientation',
-    description:
-      'Get immediate platform access and a clear operating map so you know exactly where to begin.',
-  },
-  {
-    step: '02',
-    title: 'Implementation Phases',
-    description:
-      'Move through practical phases built to turn insight into execution from day one.',
-  },
-  {
-    step: '03',
-    title: 'Performance Refinement',
-    description:
-      'Optimize your systems with repeatable workflows, strategic feedback loops, and real-world adaptation.',
-  },
-]
-
 const MASTERY_POINTS = [
   'Master money and power systems without becoming enslaved by them.',
   'Use influence with discipline, moral resilience, and long-term intent.',
@@ -76,11 +32,11 @@ const CYBER_PANEL_GLOW = [
 
 export default function WhatYouGetPage() {
   return (
-    <div className="relative min-h-[100dvh] w-screen min-w-[100vw] overflow-x-hidden bg-black">
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-black">
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
         <iframe
           src="https://player.vimeo.com/video/899461161?autoplay=1&muted=1&loop=1&background=1"
-          className="h-full w-full scale-[1.16] opacity-56 saturate-[0.88]"
+          className="absolute left-1/2 top-1/2 h-[100svh] min-h-[56.25vw] w-[177.78svh] min-w-[100vw] -translate-x-1/2 -translate-y-1/2 scale-[1.08] opacity-56 saturate-[0.88]"
           allow="autoplay; fullscreen; picture-in-picture"
           loading="lazy"
           referrerPolicy="strict-origin-when-cross-origin"
@@ -89,32 +45,33 @@ export default function WhatYouGetPage() {
       </div>
       <div className="pointer-events-none fixed inset-0 z-0 bg-black/58" />
       <NavApp />
-      <section className="relative z-10 flex h-[100dvh] min-h-[100dvh] w-screen min-w-[100vw] items-center overflow-hidden px-4 pb-10 pt-[110px] sm:px-6 sm:pb-12 sm:pt-[126px]">
-        <div className="pointer-events-none absolute left-1/2 top-[clamp(96px,11vw,136px)] z-20 w-full -translate-x-1/2 px-4">
+      <section className="relative z-10 flex min-h-[100svh] w-full items-center overflow-hidden px-4 pb-6 pt-[116px] max-lg:items-start sm:px-6 sm:pb-12 sm:pt-[130px]">
+        <div className="pointer-events-none absolute left-1/2 top-[clamp(96px,11vw,136px)] z-20 w-full max-sm:top-[92px] -translate-x-1/2 px-4">
           <div className="mx-auto flex w-full max-w-[920px] justify-center">
             <NeonTypingBadge
               phrases={['HONOUR · MONEY · POWER · FREEDOM']}
-              typingSpeed={78}
-              deletingSpeed={44}
-              pauseMs={1350}
+              typingSpeed={34}
+              deletingSpeed={24}
+              pauseMs={420}
               boxed={false}
+              className="mx-auto w-full max-w-[min(92vw,720px)]"
             />
           </div>
         </div>
-        <div className="relative z-10 mx-auto grid h-full w-full max-w-[min(2200px,100vw)] items-center gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="pl-[clamp(0.2rem,2.8vw,3.4rem)] text-left">
-            <h1 className="mt-4 text-5xl font-bold leading-[1.02] text-amber-200 drop-shadow-[0_0_24px_rgba(251,191,36,0.42)] sm:text-6xl md:text-7xl lg:text-[7.6rem]">
+        <div className="relative z-10 mx-auto grid h-full w-full max-w-[min(2200px,100vw)] items-center gap-8 max-lg:content-start lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="pl-[clamp(0rem,2.8vw,3.4rem)] text-left max-lg:pt-6">
+            <h1 className="mt-4 text-4xl font-bold leading-[1.04] text-amber-200 drop-shadow-[0_0_24px_rgba(251,191,36,0.42)] sm:text-5xl md:text-6xl lg:text-[7.6rem]">
               <span className="block">Access To A</span>
               <span className="block">Powerful Network</span>
               <span className="block">And Alliance.</span>
             </h1>
-            <p className="mt-5 max-w-4xl text-base text-amber-100/88 sm:text-lg md:text-2xl">
+            <p className="mt-5 max-w-4xl text-sm text-amber-100/88 sm:text-base md:text-xl lg:text-2xl">
               <span className="block">You unlock a complete execution ecosystem:</span>
               <span className="block">strategy, implementation systems, and structured</span>
               <span className="block">growth frameworks designed for real-world outcomes.</span>
             </p>
           </div>
-          <div className="relative mx-auto grid h-[66vh] min-h-[460px] w-full max-w-[500px] translate-y-[13%] place-items-center">
+          <div className="relative mx-auto mt-10 grid h-[40svh] min-h-[230px] w-full max-w-[290px] translate-y-0 place-items-center sm:mt-12 sm:h-[50svh] sm:min-h-[320px] sm:max-w-[370px] lg:mt-0 lg:h-[66vh] lg:min-h-[460px] lg:max-w-[500px] lg:translate-y-[13%]">
             <div className="absolute left-1/2 top-1/2 h-[94%] w-[78%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(251,191,36,0.34)_0%,rgba(251,191,36,0.1)_42%,rgba(0,0,0,0)_74%)] blur-[14px]" />
             <div
               className="relative grid h-full w-full place-items-center"
@@ -127,64 +84,8 @@ export default function WhatYouGetPage() {
                 width={440}
                 height={760}
                 sizes="(max-width: 1024px) 320px, 440px"
-                className="mt-16 h-[84%] w-auto object-contain object-center drop-shadow-[0_0_62px_rgba(251,191,36,0.78)]"
+                className="mt-8 h-[86%] w-auto object-contain object-center drop-shadow-[0_0_62px_rgba(251,191,36,0.78)] sm:mt-12 lg:mt-16"
               />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="relative z-10 flex h-[100dvh] min-h-[100dvh] w-full items-center overflow-hidden px-4 py-10 sm:px-6 sm:py-12">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-[#03050a]/80 via-black/84 to-[#010204]/88" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_20%,rgba(251,191,36,0.08),transparent_35%),radial-gradient(circle_at_86%_82%,rgba(34,211,238,0.06),transparent_35%)]" />
-        </div>
-        <div className="relative z-10 mx-auto w-full max-w-[min(1860px,99vw)]">
-          <div className="mb-5">
-            <h2 className="mt-2 text-5xl font-black text-amber-100 drop-shadow-[0_0_22px_rgba(251,191,36,0.42)] sm:text-6xl lg:text-7xl">
-              Built for operators who want structure, not noise
-            </h2>
-            <p className="mt-3 max-w-5xl text-lg leading-relaxed text-zinc-200/90 sm:text-xl">
-              A complete system for money, power, and life mastery designed to create clarity, execution, and long-term momentum.
-            </p>
-          </div>
-          <div className="grid gap-6 lg:grid-cols-[1.18fr_0.82fr]">
-            <div className="grid auto-rows-fr gap-4 md:grid-cols-2 lg:gap-5">
-            {VALUE_PILLARS.map((pillar, index) => (
-              <div
-                key={pillar.title}
-                className={`cyber-chip-animate methods-fade-up group relative border bg-transparent p-[1px] [clip-path:polygon(12px_0,calc(100%-12px)_0,100%_12px,100%_calc(100%-12px),calc(100%-12px)_100%,12px_100%,0_calc(100%-12px),0_12px)] transition duration-500 hover:-translate-y-2 hover:scale-[1.02] animate-[cyberChipGlow_2.4s_ease-in-out_infinite] ${CYBER_PANEL_GLOW[index % CYBER_PANEL_GLOW.length]}`}
-                style={{ animationDelay: `${index * 0.16}s` }}
-              >
-                <span className="pointer-events-none absolute inset-[-1px] bg-transparent opacity-0 blur-[12px]" />
-                <article className="relative min-h-[clamp(250px,31vh,340px)] overflow-hidden bg-black/44 p-6 [clip-path:polygon(12px_0,calc(100%-12px)_0,100%_12px,100%_calc(100%-12px),calc(100%-12px)_100%,12px_100%,0_calc(100%-12px),0_12px)] sm:p-7">
-                  <h3 className="text-2xl font-semibold text-amber-100 sm:text-3xl">{pillar.title}</h3>
-                  <p className="mt-3 text-lg leading-relaxed text-zinc-200/88">{pillar.description}</p>
-                </article>
-              </div>
-            ))}
-            </div>
-            <div className="cyber-chip-animate group relative border border-violet-300/95 bg-transparent p-[1px] shadow-[0_0_0_1px_rgba(193,120,255,0.92),0_0_48px_rgba(193,120,255,0.62),0_0_118px_rgba(193,120,255,0.3)] animate-[cyberChipGlow_2.2s_ease-in-out_infinite] [clip-path:polygon(12px_0,calc(100%-12px)_0,100%_12px,100%_calc(100%-12px),calc(100%-12px)_100%,12px_100%,0_calc(100%-12px),0_12px)]">
-              <span className="pointer-events-none absolute inset-[-1px] bg-transparent opacity-0 blur-[12px]" />
-              <div className="relative bg-black/44 p-6 [clip-path:polygon(12px_0,calc(100%-12px)_0,100%_12px,100%_calc(100%-12px),calc(100%-12px)_100%,12px_100%,0_calc(100%-12px),0_12px)] sm:p-7">
-                <p className="text-base uppercase tracking-[0.24em] text-amber-200/85">Delivery Process</p>
-                <div className="mt-4 space-y-3">
-                  {DELIVERY_FLOW.map((item, index) => (
-                    <div
-                      key={item.step}
-                      className={`cyber-chip-animate methods-fade-up relative border bg-transparent p-[1px] [clip-path:polygon(10px_0,calc(100%-10px)_0,100%_10px,100%_calc(100%-10px),calc(100%-10px)_100%,10px_100%,0_calc(100%-10px),0_10px)] transition duration-300 hover:-translate-y-1 hover:scale-[1.01] animate-[cyberChipGlow_2.2s_ease-in-out_infinite] ${CYBER_PANEL_GLOW[(index + 2) % CYBER_PANEL_GLOW.length]}`}
-                      style={{ animationDelay: `${index * 0.2}s` }}
-                    >
-                      <span className="pointer-events-none absolute inset-[-1px] bg-transparent opacity-0 blur-[10px]" />
-                      <article className="relative bg-black/45 p-5 [clip-path:polygon(10px_0,calc(100%-10px)_0,100%_10px,100%_calc(100%-10px),calc(100%-10px)_100%,10px_100%,0_calc(100%-10px),0_10px)]">
-                        <p className="text-base font-semibold tracking-[0.2em] text-amber-200/85">{item.step}</p>
-                        <h3 className="mt-1 text-xl font-semibold text-amber-100 sm:text-2xl">{item.title}</h3>
-                        <p className="mt-2 text-base leading-relaxed text-zinc-200/90 sm:text-lg">{item.description}</p>
-                      </article>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -309,7 +210,7 @@ export default function WhatYouGetPage() {
         </div>
       </section>
 
-      <section className="relative z-10 flex h-[100dvh] min-h-[100dvh] w-full items-center overflow-hidden px-4 py-12 sm:px-6 sm:py-14">
+      <section className="relative z-10 flex min-h-[100svh] w-full items-center overflow-hidden px-4 py-12 sm:px-6 sm:py-14">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute inset-0 bg-black/58" />
         </div>
@@ -342,7 +243,7 @@ export default function WhatYouGetPage() {
               ))}
             </div>
             </article>
-            <div className="cyber-chip-animate mx-auto mb-8 mt-10 h-[220px] w-[220px] sm:h-[300px] sm:w-[300px]">
+            <div className="cyber-chip-animate mx-auto mb-4 mt-16 h-[220px] w-[220px] sm:mb-6 sm:mt-20 sm:h-[300px] sm:w-[300px]">
               <div className="relative h-full w-full" style={{ animation: 'whatYouGetCoinSpin 14s linear infinite' }}>
                 <Image
                   src="/assets/coin-gold.png"

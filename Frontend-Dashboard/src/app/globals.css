@@ -3988,6 +3988,36 @@ body {
   animation: lightning-border 3s ease-in-out infinite;
 }
 
+@keyframes lightning-card-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 10px var(--lightning-color, rgba(56, 236, 255, 0.9)),
+      0 0 24px var(--lightning-color-soft, rgba(56, 236, 255, 0.55)),
+      inset 0 0 8px var(--lightning-color-soft, rgba(56, 236, 255, 0.4));
+    filter: brightness(1);
+  }
+  45% {
+    box-shadow:
+      0 0 18px var(--lightning-color, rgba(56, 236, 255, 0.95)),
+      0 0 42px var(--lightning-color, rgba(56, 236, 255, 0.8)),
+      0 0 92px var(--lightning-color-soft, rgba(56, 236, 255, 0.6)),
+      inset 0 0 14px var(--lightning-color-soft, rgba(56, 236, 255, 0.45));
+    filter: brightness(1.08);
+  }
+  50% {
+    box-shadow:
+      0 0 8px var(--lightning-color, rgba(56, 236, 255, 0.8)),
+      0 0 16px var(--lightning-color-soft, rgba(56, 236, 255, 0.45)),
+      inset 0 0 6px var(--lightning-color-soft, rgba(56, 236, 255, 0.3));
+    filter: brightness(0.98);
+  }
+}
+
+.lightning-glow-card {
+  animation: lightning-card-pulse 1.8s ease-in-out infinite;
+}
+
 @keyframes hamburger-attract {
   0%,
   100% {

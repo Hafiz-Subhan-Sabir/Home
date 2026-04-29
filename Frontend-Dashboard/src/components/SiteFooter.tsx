@@ -31,7 +31,7 @@ export default function SiteFooter() {
       </div>
       <div className="relative z-10 mx-auto flex w-full max-w-[min(1700px,97vw)] flex-col gap-[clamp(1.7rem,4vw,3.25rem)]">
         <div className="grid grid-cols-1 items-center gap-[clamp(1rem,3vw,2.25rem)] md:grid-cols-[minmax(300px,1.1fr)_minmax(420px,1.2fr)_minmax(360px,1fr)] md:gap-[clamp(1.4rem,2.5vw,3rem)]">
-          <div className="p-1 md:justify-self-start">
+          <div className="p-1 justify-self-center md:justify-self-start">
             <Image
               src="/assets/logo.webp"
               alt="Onem logo"
@@ -42,31 +42,33 @@ export default function SiteFooter() {
             />
           </div>
 
-          <div className="mx-auto flex w-full max-w-[min(900px,100%)] justify-center px-[clamp(0.25rem,1vw,0.75rem)] py-[clamp(0.25rem,1vw,0.6rem)]" />
+          <div className="mx-auto flex w-full max-w-[min(900px,100%)] justify-center px-[clamp(0.25rem,1vw,0.75rem)] py-[clamp(0.25rem,1vw,0.6rem)] text-center">
+            <p
+              className="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-amber-100/90 sm:text-[0.7rem] md:text-[0.78rem]"
+              style={{ textShadow: '0 0 8px rgba(251, 191, 36, 0.25)' }}
+            >
+              Honour · Money · Power · Freedom
+            </p>
+          </div>
 
-          <div className="rounded-xl p-[clamp(0.4rem,1vw,0.75rem)] text-right md:justify-self-end">
+          <div className="rounded-xl p-[clamp(0.4rem,1vw,0.75rem)] text-center md:justify-self-end md:text-right">
             <p
               className="text-[clamp(0.78rem,1.2vw,0.96rem)] font-semibold uppercase tracking-[0.22em]"
               style={{ color: 'rgba(253, 230, 138, 0.95)', textShadow: '0 0 10px rgba(251, 191, 36, 0.35)' }}
             >
               Quick Links
             </p>
-            <div className="mt-3 flex flex-wrap items-center justify-end gap-x-[clamp(1rem,2.2vw,2rem)] gap-y-[clamp(0.4rem,1vw,0.8rem)] text-[clamp(1rem,1.5vw,1.5rem)] font-semibold">
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-[clamp(1rem,2.2vw,2rem)] gap-y-[clamp(0.4rem,1vw,0.8rem)] text-[clamp(1rem,1.5vw,1.5rem)] font-semibold md:justify-end">
               <Link href="/" prefetch className={footerLinkClass} style={{ color: 'rgba(254, 243, 199, 0.95)', textShadow: '0 0 8px rgba(251, 191, 36, 0.25)' }}>Home</Link>
               <Link href="/what-you-get" prefetch className={footerLinkClass} style={{ color: 'rgba(254, 243, 199, 0.95)', textShadow: '0 0 8px rgba(251, 191, 36, 0.25)' }}>What You Get</Link>
               <Link href="/our-methods" prefetch className={footerLinkClass} style={{ color: 'rgba(254, 243, 199, 0.95)', textShadow: '0 0 8px rgba(251, 191, 36, 0.25)' }}>Our Methods</Link>
               <Link href="/programs" prefetch className={footerLinkClass} style={{ color: 'rgba(254, 243, 199, 0.95)', textShadow: '0 0 8px rgba(251, 191, 36, 0.25)' }}>Programs</Link>
               <Link href="/login" prefetch className={footerLinkClass} style={{ color: 'rgba(254, 243, 199, 0.95)', textShadow: '0 0 8px rgba(251, 191, 36, 0.25)' }}>Join Now</Link>
             </div>
-            <div className="mt-5 flex items-center justify-end gap-3">
+            <div className="mt-5 flex items-center justify-center gap-3 md:justify-end">
               <a href="https://www.youtube.com/" target="_blank" rel="noreferrer" aria-label="YouTube" className={socialIconClass}>
                 <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 fill-current" aria-hidden>
                   <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.5 31.5 0 0 0 0 12a31.5 31.5 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.5 31.5 0 0 0 24 12a31.5 31.5 0 0 0-.5-5.8ZM9.6 15.7V8.3L15.8 12l-6.2 3.7Z" />
-                </svg>
-              </a>
-              <a href="https://x.com/" target="_blank" rel="noreferrer" aria-label="X (Twitter)" className={socialIconClass}>
-                <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 fill-current" aria-hidden>
-                  <path d="M18.9 2H22l-6.8 7.7L23.2 22h-6.2l-4.9-6.9L6 22H2.9l7.3-8.3L.8 2h6.4l4.4 6.2L18.9 2Zm-1.1 18h1.7L6.3 3.9H4.5L17.8 20Z" />
                 </svg>
               </a>
               <a href="https://www.instagram.com/followthesyndicate?igsh=MXV5b3E5NnF4YWxjNg==" target="_blank" rel="noreferrer" aria-label="Instagram" className={socialIconClass}>

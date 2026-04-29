@@ -13,7 +13,7 @@ import {
 } from "react";
 import { gsap } from "gsap";
 import LuxuryRedirectOverlay from "@/components/syndicate-otp/LuxuryRedirectOverlay";
-import { persistSimpleAuthSession } from "@/lib/portal-api";
+import { getApiDisplayHint, persistSimpleAuthSession, resolveClientApiUrl } from "@/lib/portal-api";
 import {
   resolvePostOtpAppRedirect,
   syndicateOtpLoginHref,
@@ -56,7 +56,6 @@ type ApiPayload = {
   };
 };
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000").replace(/\/$/, "");
 const DASHBOARD_FALLBACK =
   process.env.NEXT_PUBLIC_POST_LOGIN_REDIRECT_URL ?? "http://localhost:3000/dashboard";
 
@@ -350,7 +349,7 @@ export default function AuthScreen({
 
   async function postJson(path: string, body: Record<string, string | undefined>) {
     let response: Response;
-    const url = `${API_BASE_URL || ""}${path}`;
+    const url = resolveClientApiUrl(path);
     try {
       response = await fetch(url, {
         method: "POST",
@@ -360,7 +359,7 @@ export default function AuthScreen({
     } catch (caught) {
       if (caught instanceof TypeError) {
         throw new Error(
-          `Cannot reach the API (${url || path}). From the Backend folder run: .\\run_dev.ps1 — or: python manage.py runserver`,
+          `Cannot reach the API (${url || path}). ${getApiDisplayHint()}. From the Backend folder run: .\\run_dev.ps1 — or: python manage.py runserver`,
         );
       }
       throw caught;

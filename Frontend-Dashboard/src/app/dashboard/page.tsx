@@ -1473,6 +1473,106 @@ function formatBillingDate(value: string | null): string {
   return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
+function SettingsProfileSection({
+  profileName,
+  onProfileNameChange,
+  onProfileNameSave,
+  profileAvatar,
+  onProfileAvatarFile,
+  onResetProfile,
+  onLogout,
+}: {
+  profileName: string;
+  onProfileNameChange: (next: string) => void;
+  onProfileNameSave: (next: string) => void;
+  profileAvatar: string;
+  onProfileAvatarFile: (e: ChangeEvent<HTMLInputElement>) => void;
+  onResetProfile: () => void;
+  onLogout: () => void;
+}) {
+  return (
+    <section className="w-full">
+      <div className="relative overflow-hidden rounded-xl border border-cyan-300/35 bg-[#05070d]/86 p-[clamp(0.85rem,1.8vw,1.4rem)] shadow-[0_0_0_1px_rgba(34,211,238,0.14),0_0_26px_rgba(34,211,238,0.14),inset_0_0_18px_rgba(168,85,247,0.08)]">
+        <div className="pointer-events-none absolute inset-0 opacity-50 [background:radial-gradient(500px_220px_at_8%_0%,rgba(34,211,238,0.12),transparent_65%),radial-gradient(560px_260px_at_100%_100%,rgba(244,63,94,0.08),transparent_70%)]" />
+        <div className="relative z-[1]">
+          <div className="mb-4 border-b border-cyan-300/20 pb-3">
+            <h2 className="text-[clamp(1.2rem,1.35vw+0.8rem,1.6rem)] font-black uppercase tracking-[0.12em] text-cyan-100 drop-shadow-[0_0_10px_rgba(34,211,238,0.35)]">
+              Profile Settings
+            </h2>
+            <p className="mt-1 text-[14px] text-slate-200/80 sm:text-[15px]">
+              Update your profile identity. Changes are reflected in dashboard sections.
+            </p>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="relative overflow-hidden rounded-lg border border-cyan-300/45 bg-[#040a12]/80 p-3 shadow-[0_0_0_1px_rgba(34,211,238,0.2),0_0_18px_rgba(34,211,238,0.18),inset_0_0_16px_rgba(34,211,238,0.08)] [clip-path:polygon(0_0,96%_0,100%_14%,100%_100%,4%_100%,0_86%)]">
+              <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(320px_140px_at_0%_0%,rgba(34,211,238,0.18),transparent_65%)]" />
+              <label className="text-[13px] font-black uppercase tracking-[0.12em] text-cyan-100/90">Profile Name</label>
+              <input
+                value={profileName}
+                onChange={(e) => onProfileNameChange(e.target.value)}
+                onBlur={() => onProfileNameSave(profileName)}
+                placeholder="Enter display name"
+                className="mt-2 w-full rounded-md border border-cyan-200/30 bg-[#040710] px-3 py-2 text-[16px] text-slate-100 outline-none transition focus:border-cyan-300/70 focus:shadow-[0_0_0_1px_rgba(34,211,238,0.4),0_0_12px_rgba(34,211,238,0.22)]"
+              />
+              <button
+                type="button"
+                onClick={() => onProfileNameSave(profileName)}
+                className="mt-3 inline-flex items-center justify-center rounded-md border border-cyan-300/45 bg-cyan-400/10 px-3 py-2 text-[14px] font-black uppercase tracking-[0.08em] text-cyan-100 transition hover:bg-cyan-400/20"
+              >
+                Save Name
+              </button>
+            </div>
+
+            <div className="relative overflow-hidden rounded-lg border border-fuchsia-300/45 bg-[#0a0412]/80 p-3 shadow-[0_0_0_1px_rgba(217,70,239,0.2),0_0_18px_rgba(217,70,239,0.16),inset_0_0_16px_rgba(217,70,239,0.08)] [clip-path:polygon(4%_0,100%_0,100%_86%,96%_100%,0_100%,0_14%)]">
+              <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(300px_150px_at_100%_0%,rgba(217,70,239,0.16),transparent_65%)]" />
+              <label className="text-[13px] font-black uppercase tracking-[0.12em] text-fuchsia-100/90">Profile Avatar</label>
+              <div className="mt-2 flex items-center gap-3">
+                <img
+                  src={profileAvatar}
+                  alt="Profile avatar preview"
+                  className="h-14 w-14 rounded-full border border-fuchsia-200/35 object-cover shadow-[0_0_12px_rgba(236,72,153,0.25)]"
+                />
+                <span className="text-[13px] text-slate-200/75">Upload your operator image for profile visibility across dashboard modules.</span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <label className="inline-flex cursor-pointer items-center justify-center rounded-md border border-amber-300/45 bg-amber-400/10 px-3 py-2 text-[14px] font-black uppercase tracking-[0.08em] text-amber-100 transition hover:bg-amber-400/20">
+                  Upload Image
+                  <input type="file" accept="image/*" onChange={onProfileAvatarFile} className="hidden" />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <div className="relative overflow-hidden rounded-lg border border-amber-300/45 bg-[#110904]/78 p-3 shadow-[0_0_0_1px_rgba(251,191,36,0.2),0_0_18px_rgba(251,191,36,0.14),inset_0_0_16px_rgba(249,115,22,0.08)] [clip-path:polygon(0_0,100%_0,100%_82%,92%_100%,8%_100%,0_82%)]">
+              <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(460px_180px_at_50%_-10%,rgba(251,191,36,0.14),transparent_65%)]" />
+              <label className="text-[13px] font-black uppercase tracking-[0.12em] text-rose-100/90">Account Actions</label>
+              <p className="mt-1 text-[13px] text-slate-200/70">Use quick operations for profile cleanup and session control.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={onResetProfile}
+                  className="rounded-md border border-violet-300/45 bg-violet-400/10 px-3 py-2 text-[13px] font-black uppercase tracking-[0.08em] text-violet-100 transition hover:bg-violet-400/20"
+                >
+                  Reset Profile
+                </button>
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="rounded-md border border-rose-300/45 bg-rose-400/10 px-3 py-2 text-[13px] font-black uppercase tracking-[0.08em] text-rose-100 transition hover:bg-rose-400/20"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function SettingsBillingSection() {
   const [rows, setRows] = useState<StreamPlaylistPurchaseHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1502,25 +1602,26 @@ function SettingsBillingSection() {
 
   return (
     <section className="w-full">
-      <div className="rounded-xl border border-[rgba(255,215,0,0.22)] bg-[#060606]/82 p-[clamp(0.8rem,1.6vw,1.25rem)] shadow-[0_0_0_1px_rgba(255,215,0,0.08),0_0_46px_rgba(255,215,0,0.08)]">
+      <div className="relative overflow-hidden rounded-xl border border-lime-300/40 bg-[#04100a]/82 p-[clamp(0.8rem,1.6vw,1.25rem)] shadow-[0_0_0_1px_rgba(163,230,53,0.16),0_0_22px_rgba(163,230,53,0.12),inset_0_0_18px_rgba(20,184,166,0.08)] [clip-path:polygon(0_0,98%_0,100%_10%,100%_100%,2%_100%,0_90%)]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(620px_220px_at_0%_0%,rgba(163,230,53,0.14),transparent_65%),radial-gradient(420px_200px_at_100%_100%,rgba(20,184,166,0.1),transparent_70%)]" />
         <div className="mb-3 border-b border-[color:var(--gold-neon-border-mid)]/35 pb-3">
-          <h2 className="text-[clamp(1rem,1.2vw+0.75rem,1.35rem)] font-black uppercase tracking-[0.12em] text-[color:var(--gold)]">
+          <h2 className="text-[clamp(1.2rem,1.35vw+0.8rem,1.6rem)] font-black uppercase tracking-[0.12em] text-lime-200 drop-shadow-[0_0_8px_rgba(163,230,53,0.28)]">
             Billing History
           </h2>
-          <p className="mt-1 text-[12px] text-white/72 sm:text-[13px]">
+          <p className="mt-1 text-[14px] text-white/72 sm:text-[15px]">
             View all purchased courses/playlists with payment amount, status, and date/time.
           </p>
         </div>
 
-        {loading ? <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-3 text-[12px] text-white/70">Loading billing history...</div> : null}
-        {error ? <div className="rounded-lg border border-rose-500/35 bg-rose-950/30 px-3 py-3 text-[12px] text-rose-100/90">{error}</div> : null}
+        {loading ? <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-3 text-[14px] text-white/70">Loading billing history...</div> : null}
+        {error ? <div className="rounded-lg border border-rose-500/35 bg-rose-950/30 px-3 py-3 text-[14px] text-rose-100/90">{error}</div> : null}
         {!loading && !error && rows.length === 0 ? (
-          <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-3 text-[12px] text-white/70">No purchases yet.</div>
+          <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-3 text-[14px] text-white/70">No purchases yet.</div>
         ) : null}
 
         {!loading && !error && rows.length > 0 ? (
           <div className="overflow-x-auto rounded-lg border border-white/10">
-            <table className="min-w-[760px] w-full border-collapse text-left text-[12px] sm:text-[13px]">
+            <table className="min-w-[760px] w-full border-collapse text-left text-[14px] sm:text-[15px]">
               <thead className="bg-[#111111] text-[color:var(--gold)]/92">
                 <tr>
                   <th className="px-3 py-2 font-black uppercase tracking-[0.1em]">Course</th>
@@ -1635,6 +1736,12 @@ export default function Page() {
     notifyDashboardProfileUpdated();
   }, []);
 
+  const resetProfileSettings = useCallback(() => {
+    persistProfileName("Member");
+    persistProfileAvatar(DEFAULT_DASHBOARD_PROFILE_AVATAR);
+    setThemeMode("default");
+  }, [persistProfileAvatar, persistProfileName]);
+
   const onProfileAvatarFile = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -1667,7 +1774,7 @@ export default function Page() {
       /* ignore */
     }
     document.cookie = "simple_auth_session=; path=/; max-age=0; samesite=lax";
-    window.location.replace("/login");
+    window.location.replace("/");
   }, []);
 
   useEffect(() => {
@@ -2907,7 +3014,18 @@ export default function Page() {
                 </div>
               ) : selectedNavKey === "settings" ? (
                 <div className="min-h-0 min-w-0 w-full max-w-none flex-1 py-1 md:py-2">
-                  <SettingsBillingSection />
+                  <div className="space-y-4">
+                    <SettingsProfileSection
+                      profileName={profileName}
+                      onProfileNameChange={setProfileName}
+                      onProfileNameSave={persistProfileName}
+                      profileAvatar={profileAvatar}
+                      onProfileAvatarFile={onProfileAvatarFile}
+                      onResetProfile={resetProfileSettings}
+                      onLogout={handleLogout}
+                    />
+                    <SettingsBillingSection />
+                  </div>
                 </div>
               ) : selectedNavKey === "dashboard" ? (
                 <>

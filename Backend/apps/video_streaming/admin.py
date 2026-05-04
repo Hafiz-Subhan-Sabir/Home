@@ -20,7 +20,21 @@ class StreamPlaylistAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("title",)}
     inlines = [StreamPlaylistItemInline]
     fieldsets = (
-        (None, {"fields": ("title", "slug", "category", "description", "price", "rating", "cover_image")}),
+        (None, {"fields": ("title", "slug", "category", "price", "rating", "cover_image")}),
+        (
+            "Program description (dashboard modal)",
+            {
+                "fields": ("description",),
+                "description": (
+                    "Use three section titles each on its own line (case-insensitive), then the body text below. "
+                    "Titles: The Hook — The core protocol (or Core protocol) — What you will learn. "
+                    "Optional markdown hashes at the start of a title line (e.g. ## The Hook) are allowed. "
+                    "Under What you will learn, lines like Module 1, Chapter 2, or Chapter 3: Title (own line) "
+                    "become sub-headings; list topics on the following lines (or with - bullets). "
+                    "Blank lines between sections are fine."
+                ),
+            },
+        ),
         ("Publishing", {"fields": ("is_published", "is_coming_soon")}),
     )
 

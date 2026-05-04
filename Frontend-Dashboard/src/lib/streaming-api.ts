@@ -26,12 +26,21 @@ export type StreamPayload = {
   hls_url: string | null;
 };
 
+/** Parsed from admin `description` when section title lines are used (see API / admin help). */
+export type StreamPlaylistDescriptionSections = {
+  hook: string;
+  core_protocol: string;
+  what_you_will_learn: string;
+};
+
 export type StreamPlaylistListItem = {
   id: number;
   title: string;
   slug: string;
   category: "business_model" | "business_psychology";
   description: string;
+  /** Present on current API; each string is body under that heading in admin description. */
+  description_sections?: StreamPlaylistDescriptionSections;
   price: string;
   rating: string;
   cover_image_url: string | null;

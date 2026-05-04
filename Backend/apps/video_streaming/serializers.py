@@ -2,6 +2,7 @@ from django.urls import reverse
 from rest_framework import serializers
 
 from apps.video_streaming.models import StreamPlaylist, StreamPlaylistItem, StreamPlaylistPurchase, StreamVideo
+from apps.video_streaming.playlist_description import parse_playlist_description_sections
 
 
 class StreamVideoListSerializer(serializers.ModelSerializer):
@@ -65,6 +66,7 @@ class StreamPlaylistItemSerializer(serializers.ModelSerializer):
 class StreamPlaylistListSerializer(serializers.ModelSerializer):
     cover_image_url = serializers.SerializerMethodField()
     video_count = serializers.IntegerField(read_only=True)
+    description_sections = serializers.SerializerMethodField()
 
     class Meta:
         model = StreamPlaylist
@@ -74,6 +76,7 @@ class StreamPlaylistListSerializer(serializers.ModelSerializer):
             "slug",
             "category",
             "description",
+            "description_sections",
             "price",
             "rating",
             "cover_image_url",
@@ -86,6 +89,9 @@ class StreamPlaylistListSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     is_unlocked = serializers.SerializerMethodField()
+
+    def get_description_sections(self, obj: StreamPlaylist) -> dict[str, str]:
+        return parse_playlist_description_sections(obj.description)
 
     def get_cover_image_url(self, obj: StreamPlaylist):
         request = self.context.get("request")
